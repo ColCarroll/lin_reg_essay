@@ -1,0 +1,443 @@
+<!doctype html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+
+    <title>
+        Bayesian Linear Regression
+    </title>
+
+    <!-- AngularJS -->
+    <script type="text/javascript" src="/js/jquery.min.js"></script>
+    <script type="text/javascript" src="/js/angular.js"></script>
+
+    <!-- D3js -->
+    <script type="text/javascript" src="/js/d3.min.js"></script>
+
+    <!-- MathJax -->
+    <script src="/js/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+    <!-- Essay -->
+    <style>
+        @import url("css/custom.css");
+    </style>
+    <script type="text/javascript" src="/js/talk.js"></script>
+
+</head>
+<body ng-app="regressionEssay">
+<header>
+    <aside>September 18, 2014</aside>
+    <a href="colindcarroll.com">Colin Carroll</a>
+</header>
+<h1>A Bayesian Approach to \(L^1\) and \(L^2\) Regularization in Machine Learning</h1>
+<h3>Colin Carroll</h3>
+
+<h2><a href="#introduction" name="introduction">></a>Introduction</h2>
+<p>
+    There are two common tasks in machine learning: these are <em>regression</em> tasks and <em>classification</em>
+    tasks.  Examples of classification tasks include predicting the species of an iris based on
+    <a href="http://en.wikipedia.org/wiki/Iris_flower_data_set">petal and sepal measurements</a>, predicting who will
+    win a <a href="http://fivethirtyeight.com/interactives/senate-forecast/">Senate race</a> or
+    <a href="http://www.lasvegas.com">football game</a>, or predicting who will click on a banner advertisement.
+    Broadly each takes some set of inputs and output one of a discrete set of labels (typically, the output will
+    actually be a probability of some data point having some label).  A regression task will actually predict a real
+    valued output.  Perhaps this would be used to estimate stock prices, forecast inventory, or predict the score of a
+    a football game.
+</p>
+
+<p>
+    Linear regression can get a bad rap for sounding boring.  Much like linear algebra, where much emphasis is put on
+    solving \(A \mathbf{x} = \mathbf{b}\), studying linear regression -- how to build a model, how to tune a model, and
+    what sorts of performance to expect -- can yield impressive results in practice.  In particular, one finds that
+    many methods with sexier names are built on top of linear regression.  Neural nets, which seem to be a buzzword
+    these days, use linear regression as its building block.
+</p>
+
+
+<h2><a href="#setup" name="setup">></a>Setup</h2>
+<p>
+    At its most basic, a linear model is one of the form
+</p>
+$$y(\mathbf{x}, \mathbf{w}) = w_0 + x_1 w_1 + \cdots + w_Dx_D,$$
+<p>
+    where \(\mathbf{x} = (x_1, \ldots, x_D) \in \mathbb{R}^D \) are called <em>features</em>, and
+    \(\mathbf{w} = (w_0, \ldots, w_D) \in \mathbb{R}^D \) are called <em>weights</em>.  One is typically
+    given some training data
+</p>
+
+$$\mathscr{D} = \{(y_1, \mathbf{x}_1),\ldots,(y_D, \mathbf{x}_D)\},$$
+<p>
+    and asked to find a model which minimizes
+</p>
+$$ loss(\mathbf{w}) = \sum_{j=1}^D (y_j - y(\mathbf{x}_j, \mathbf{w}))^2. $$
+
+<p>
+    Below, you may click on the plot to generate a random data set, and then manually choose values \(w_0\), \(w_1\) to
+    try to fit \(y(x, \mathbf{w}) = w_0 + w_1 x\) to the data.
+</p>
+<div ng-controller="ManualRegression">
+    <div ng-click="cycleData()">
+        <plot-line-points point-data="data" line-data="plotData"></plot-line-points>
+    </div>
+    <p>
+        Current model: y(x, w) = <input type="number" step=0.1 ng-model="w0" ng-change="updatePlot()"> +
+        <input type="number" step=0.1 ng-model="w1" ng-change="updatePlot()"> x
+    </p>
+    <p> Current loss: {{error.toFixed(2)}}</p>
+</div>
+
+<h2><a href="#advancedSetup" name="advancedSetup">></a>Advanced Setup</h2>
+
+<p>That was likely highly frustrating, since many (most?) data is drawn from some function which relies non-linearly on
+    its inputs.  One might consider rainfall in a location as a function of the day of year, which would probably have
+    some sort of periodic relationship, or weight of a person given their height, which we might expect has a polynomial
+    relationship (since weight is a measure of volume, and height one of length).  We deal with this by fitting our
+    model using <em>basis functions</em>, \(\pmb{\phi} = (\phi_1, \ldots, \phi_n)\), where
+    \(\phi_j: \mathbb{R}^D \to \mathbb{R}\).  Then we have our model
+</p>
+$$y(\mathbf{x}, \mathbf{w}) = w_0 + \sum_{j=1}^n w_j \phi_j(\mathbf{x}).$$
+
+<p>Or, by setting \(\phi_0(\mathbf{x}) := 1\), we can write</p>
+$$ y = \pmb{\phi}(\mathbf{x}) \cdot \mathbf{w}.$$
+
+<p>In practice, some popular choices for basis functions include</p>
+<ul ng-controller="basisCtrl">
+    <li><em>Polynomials.</em>
+        For a one dimensional feature set, this just means that instead of writing
+        \(y = w_0 + w_1 x\), we will now write \(y = w_0 + w_1 x + w_2 x^2 + \cdots + w_n x^n\).  For a larger set of
+        features \(\{x_1, \ldots, x_D\}\), you may get the second degree polynomials by defining
+        \(\phi_j(\mathbf{x}) = x_j\), and \(\phi_{j,k}(\mathbf{x}) = x_j x_k\). Now you will have \(D~choose~2\) basis
+        functions (usually written \(\binom{D}{2}\), and in fact, equal to \(\frac{D(D-1)}{2}\)), and
+        $$
+        y(\mathbf{w}, \mathbf{x}) = \pmb{\phi}(\mathbf{x}) \cdot \mathbf{w},
+        $$
+        where \(\pmb{\phi}: \mathbb{R}^D \to \mathbb{R}^{\frac{D (D-1)}{2}}\).
+
+        A shortcoming of polynomials is that they tend to get very large very fast away from points you have trained on,
+        since \(\lim_{x\to\pm \infty}|x^j| = \infty\) for any value of \(j\). This can lead to ridiculous predictions.
+
+        <plot-line line-data="polyData"></plot-line>
+        <div>
+            Edit degree:
+            <input type="number" min="0" step="1" ng-model="polyDegree" ng-change="updatePoly()">
+        </div>
+    </li>
+
+    <li> <em>Sigmoids.</em>
+        These are a two parameter family of functions, which may be defined casually as having
+        an "S" shape, and carefully as being monotone (either always increasing or decreasing), and converging to a
+        finite value in either direction.  Concretely, one such family is
+        $$
+        \sigma_{m,b}(x) = \frac{1}{1 + e^{-m(x + b)}},
+        $$
+        where \(m\) controls the "spread" of the sigmoid, and \(b\) the "location" (\(\tanh(m(x+b))\) is another
+        popular choice for \(\sigma_{m,b}\)).  One might think of a sigmoid feature as effecting some change in an
+        \(m\) neighborhood of \(b\).  You might generate many of these by selecting some grid of locations and spreads
+        in your feature space.
+        <plot-line line-data="sigmoidData"></plot-line>
+        <div>
+            <div class="arrow-up" ng-click="updateSigmoid('up')"></div>
+            location
+            <div class="arrow-down" ng-click="updateSigmoid('down')"></div>
+            Edit location:
+            <input type="number" min="-1" max="1" step="0.1" ng-model="sigmoidLoc" ng-change="updateSigmoid()">
+        </div>
+        <div>
+            Edit spread:
+            <input type="number" min="-10" max="10" step="1" ng-model="sigmoidSpread" ng-change="updateSigmoid()">
+        </div>
+    </li>
+
+    <li> <em>Gaussians.</em>
+        We'll later deal with these in a statistical fashion, but right now they're just a friendly shape.  Similarly
+        to sigmoids, these functions have a local effect on a model.  They are again defined as a two parameter family,
+        with the parameters controlling spread and location.  We write
+        $$
+        \phi_{m,b}(x) = e^{\frac{(x - b)^2}{2m^2}}.
+        $$
+        <plot-line line-data="gaussData"></plot-line>
+        <div>
+            Edit location:
+            <input type="number" min="-1" max="1" step="0.1" ng-model="gaussLoc" ng-change="updateGauss()">
+        </div>
+        <div>
+            Edit spread:
+            <input type="number" min="0" max="2" step="0.1" ng-model="gaussSpread" ng-change="updateGauss()">
+        </div>
+    </li>
+</ul>
+
+<section>
+
+    <section>
+        <h2>Loss Function</h2>
+
+        Given data , find weights
+        \(\mathbf{w} = (w_1, \ldots, w_n)\) to minimize
+        $$
+        loss(\mathbf{w}) = \sum_{j=1}^D (y_j - \mathbf{w} \cdot \phi(\mathbf{x}_j))^2
+        $$
+    </section>
+
+    <section>
+        <h2>Linear algebra to the rescue</h2>
+        $$
+        X = (\mathbf{x}_1, \ldots, \mathbf{x}_D), \mathbf{y} = (y_1, \ldots, y_D)^T
+        $$
+        Then
+        $$\mathbf{w} = (X^TX)^{-1}X^T\mathbf{y}$$
+        minimizes $$\|X\mathbf{w} - \mathbf{y}\|_2^2$$
+    </section>
+
+    <section>
+        <h2>Calculus to the rescue</h2>
+        $$ \nabla_{\mathbf{w}}loss = \sum_{j=1}^D (\mathbf{w} \cdot \phi(x_j) - y_j) \phi(x_j) $$
+        So iterate the following step until \(\mathbf{w}\) converges:
+        $$\mathbf{w} = \mathbf{w} - \alpha \nabla_{\mathbf{w}}loss$$
+    </section>
+</section>
+
+<section>
+
+    <section>
+        <h2>A Naive Approach</h2>
+
+        <ul>
+            <li>
+                Create a bunch of basis functions
+            </li>
+            <li>
+                Fit model with very low error
+            </li>
+            <li>
+                Realize model overfits data
+            </li>
+        </ul>
+    </section>
+    <section>
+        <div>
+            <plot-model model-point="trainModel" model-line="plotModel" ng-click="cycleModel()" width="760" height="500"></plot-model>
+        </div>
+        <div>
+            Degree: <input type="number" min="1" step="1" ng-model="mParms.num_basis" ng-change="updateModel('num_basis', mParms.num_basis)">
+        </div>
+        <div>Mean Squared Error: {{errors.train.toFixed(5)}}</div>
+    </section>
+</section>
+
+<section>
+
+    <section>
+        <h2>A Less Naive Approach</h2>
+
+        <ul>
+            <li>
+                Split data into training and testing sets
+            </li>
+            <li>
+                Create a bunch of basis functions
+            </li>
+            <li>
+                Fit model on subset of basis functions and the training data
+            </li>
+            <li>
+                Choose model with smallest testing error
+            </li>
+        </ul>
+    </section>
+    <section>
+        <div>
+            <plot-model model-point="trainModel" model-line="plotModel" ng-click="cycleModel()" width="350" height="250"></plot-model>
+            <plot-model model-point="testModel" model-line="plotModel" ng-click="cycleModel()" width="350" height="250"></plot-model>
+        </div>
+        <div>
+            Degree: <input type="number" min="1" step="1" ng-model="mParms.num_basis" ng-change="updateModel('num_basis', mParms.num_basis)">
+        </div>
+        <div>
+            Mean Squared Train Error: {{errors.train.toFixed(5)}}
+            <br>
+            Mean Squared Test Error: {{errors.test.toFixed(5)}}
+        </div>
+    </section>
+
+</section>
+
+<section>
+
+    <section>
+        <h2>A Typical Approach</h2>
+
+        <ul>
+            <li>
+                Split data into training and testing sets
+            </li>
+            <li>
+                Create a bunch of basis functions
+            </li>
+            <li>
+                Choose weights to minimize either squared training error or
+                $$ \sum_{j=1}^D (y_j - \mathbf{w} \cdot \phi(\mathbf{x}_j))^2 + C\|\mathbf{w}\|_2^2 $$
+                or
+                $$ \sum_{j=1}^D (y_j - \mathbf{w} \cdot \phi(\mathbf{x}_j))^2 + C\|\mathbf{w}\|_1 $$
+            </li>
+        </ul>
+    </section>
+
+</section>
+
+<section>
+
+    <h2>A Typical Approach</h2>
+    <pre><code>
+        errors = []
+        for penalty in (None, 'l1', 'l2'):
+        for constant in (0.001, 0.03, 0.1, 0.3, 1):
+        model = linear_regression.fit(training_data, penalty, constant)
+        errors.append(
+        sum(
+        model.fit(testing_data.features) - testing_data.labels
+        ) ** 2
+        )
+    </code></pre>
+</section>
+
+
+<section>
+
+    <section>
+
+        <h2>Motivating Loss Function</h2>
+        <div class="eqnbox">
+            <br>
+            $$y(\mathbf{x}, \mathbf{w}) = \mathbf{w} \cdot \phi(\mathbf{x}) + \mathscr{N}(0, \sigma^2)$$
+            <br>
+        </div>
+        The <em>likelihood</em> is given by
+        <div class="eqnbox">
+            <br>
+            $$p(y | \mathbf{x}, \mathbf{w}) \propto \exp{\left(-\frac{(y - \mathbf{w} \cdot \phi(\mathbf{x}))^2}{2 \sigma^2}\right)}$$
+            <br>
+        </div>
+    </section>
+
+    <section>
+
+        <h2>Normal Distribution</h2>
+
+        <ul>
+            <li>
+                \(\mathscr{N}(x | \mu, \sigma) = \frac{1}{\sigma \sqrt{2 \pi}}e^{-\frac{(x - \mu)^2}{2 \sigma^2}}\)
+            </li>
+            <li>
+                \(\mu\) is the mean, \(\sigma\) is the standard deviation (these are theorems, not definitions)
+            </li>
+            <li>
+                \(\mathscr{N}(\mu, \sigma)\) is a random variable with mean \(\mu\), variance \(\sigma^2\)
+            </li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>Why the normal distribution?</h2>
+        Something something something central limit theorem. Analytically tractable.  Gives least squares.
+    </section>
+
+</section>
+
+<section ng-click="cycleData()" ng-blur="restoreDefaults()">
+    <plot-points point-data="data"></plot-points>
+    <div>
+        {{parameters.trainingPoints}} points drawn from
+        <br>
+        <span mathjax-bind="latexGenFunc"></span>
+    </div>
+</section>
+
+<section>
+    <h2>Motivating Loss Function</h2>
+    $$\mathscr{D} = \{(y_1, \mathbf{x}_1), \ldots, (y_N, \mathbf{x}_N)\}$$
+    <div class="eqnbox">
+        $$
+        \begin{align}
+        p(\mathscr{D} | \mathbf{w}) &= \prod_{j=1}^N p(y_j | \mathbf{x}_j, \mathbf{w}) \\
+        & \propto \exp{\sum_{j=1}^N -\frac{(y_j - \mathbf{w} \cdot \mathbf{x_j})^2}{2 \sigma^2}}
+        \end{align}
+        $$
+    </div>
+</section>
+
+<section>
+    <h2>Motivating Loss Function</h2>
+    Maximizing $$\exp{\sum_{j=1}^N -\frac{(y_j - \mathbf{w} \cdot \mathbf{x_j})^2}{2 \sigma^2}}$$
+    is equivalent to mimimizing
+    $$ \sum_{j=1}^N (y_j - \mathbf{w} \cdot \mathbf{x_j})^2 $$
+</section>
+
+<section>
+
+    <section>
+        <h2>More priors</h2>
+        What if we had some <em>prior expectations</em> about the weights of the model?
+        <ul>
+            <li>
+                If we expect the weights to all be fairly small, we might write \(\mathbf{w} \sim \mathscr{N}(0, \tau)\),
+                where \(\tau\) is a measure of how small we expect the weights to be.
+            </li>
+            <li>
+                We might also write \(\mathbf{w} \sim \text{Laplace}(0, \tau)\),
+                where \(\tau\) is again again a scale parameter.
+            </li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>Laplace Distribution</h2>
+        <ul>
+            <li>
+                \(\text{Laplace}(x | \mu, \tau) = \frac{1}{2\tau}e^{-\frac{|x - \mu|}{\tau}}\)
+            </li>
+            <li>
+                \(\mu\) is the mean, \(\tau\sqrt{2}\) is the standard deviation
+            </li>
+        </ul>
+    </section>
+
+</section>
+
+<section>
+    <h2>More priors</h2>
+    Using Bayes' theorem
+    $$
+    p(\mathbf{w} | \mathscr{D}, \tau) \propto p(\mathscr{D} | \mathbf{w}, \tau) p(\mathbf{w}| \tau)
+    $$
+    <br>
+    $$
+    \begin{align}
+    -\log{\left(p(\mathbf{w} | \mathscr{D}, \tau)\right)} &\propto -\log{\left(p(\mathscr{D} | \mathbf{w}, \tau)\right)} - \log{\left(p(\mathbf{w}, \tau)\right)} \\
+    &= \frac{\sum (y_j - \mathbf{w} \cdot \mathbf{x}_j)^2}{2 \sigma^2} - \log{\left(p(\mathbf{w}, \tau)\right)}
+    \end{align}
+    $$
+</section>
+
+<section>
+    <h2>Ridge Regression</h2>
+    $$
+    p(\mathbf{w}, \tau) \propto \exp{\left(-\frac{\|\mathbf{w}\|_2^2}{2\tau^2}\right)}
+    $$
+    $$
+    loss(w) = \|\mathbf{y} - \mathbf{X}\mathbf{w}^T\|^2 + \left(\frac{\sigma}{\tau}\right)^2\|\mathbf{w}\|_2^2
+    $$
+</section>
+<section>
+    <h2>Lasso Regression</h2>
+    $$
+    p(\mathbf{w}, \tau) \propto \exp{\left(-\frac{\|\mathbf{w}\|_1}{\tau}\right)}
+    $$
+    $$
+    loss(w) = \|\mathbf{y} - \mathbf{X}\mathbf{w}^T\|^2 + \frac{2\sigma^2}{\tau}\|\mathbf{w}\|_1
+    $$
+</section>
+
+
+</body>
+</html>
