@@ -167,277 +167,373 @@ $$ y = \pmb{\phi}(\mathbf{x}) \cdot \mathbf{w}.$$
     </li>
 </ul>
 
-<section>
+<h2><a href="#fittingModel" name="fittingModel">></a>Fitting the Model</h2>
 
-    <section>
-        <h2>Loss Function</h2>
+<p>
+    Up until now, we have been using everyone's favorite method of minimizing functions, namely by eyeballin' them.
+    The focus of this essay is not optimization, but one bad and two good methods for minimizing functions should be
+    mentioned.
+</p>
 
-        Given data , find weights
-        \(\mathbf{w} = (w_1, \ldots, w_n)\) to minimize
-        $$
-        loss(\mathbf{w}) = \sum_{j=1}^D (y_j - \mathbf{w} \cdot \phi(\mathbf{x}_j))^2
-        $$
-    </section>
 
-    <section>
-        <h2>Linear algebra to the rescue</h2>
-        $$
-        X = (\mathbf{x}_1, \ldots, \mathbf{x}_D), \mathbf{y} = (y_1, \ldots, y_D)^T
-        $$
-        Then
-        $$\mathbf{w} = (X^TX)^{-1}X^T\mathbf{y}$$
-        minimizes $$\|X\mathbf{w} - \mathbf{y}\|_2^2$$
-    </section>
+<p>
+    First, recall that we are given
+    $$\mathscr{D} = \{(y_1, \mathbf{x}_1),\ldots,(y_D, \mathbf{x}_D)\},$$
+    have decided on some set of basis functions
+    $$
+    \pmb{\phi} = (\phi_0, \ldots, \phi_n),
+    $$
+    and seek to find a vector
+    $$
+    \mathbf{w} = (w_0, \ldots, w_n)
+    $$
+    which minimizes the loss function
+    $$
+    loss(\mathbf{w}) = \sum_{j=1}^D (y_j - \pmb{\phi}(\mathbf{x}_j) \cdot \mathbf{w}))^2.
+    $$
+    We outline three methods for finding the minimum.
+</p>
 
-    <section>
-        <h2>Calculus to the rescue</h2>
-        $$ \nabla_{\mathbf{w}}loss = \sum_{j=1}^D (\mathbf{w} \cdot \phi(x_j) - y_j) \phi(x_j) $$
-        So iterate the following step until \(\mathbf{w}\) converges:
-        $$\mathbf{w} = \mathbf{w} - \alpha \nabla_{\mathbf{w}}loss$$
-    </section>
-</section>
-
-<section>
-
-    <section>
-        <h2>A Naive Approach</h2>
-
+<ol>
+    <li>
+        <em>Guessing</em>
+        This is a reasonable first try, but ultimately a Bad Idea.  Given a function <code>loss</code> that evaluates
+        the loss of a weight, you might write a loop like
+        <pre><code>
+            best_w, min_loss = -10, loss(-10)
+            for w in range(-10, 10, 0.1):
+            if loss(w) < min_loss:
+            best_w, min_loss = w, loss(w)
+            print(best_w)
+        </code></pre>
+        Staring at this loop, a few questions might strike you:
         <ul>
             <li>
-                Create a bunch of basis functions
+                Why did we iterate from -10 to 10?  Why not -1 to 1?  Why not -1,000 to 1,000?
             </li>
             <li>
-                Fit model with very low error
+                What if I need more accuracy?
             </li>
             <li>
-                Realize model overfits data
+                What if \(\mathbf{w}\) is high dimensional?  Instead of 200 points to check, we'll have \(200^{n + 1}\),
+                which is a big number.
             </li>
         </ul>
-    </section>
-    <section>
-        <div>
-            <plot-model model-point="trainModel" model-line="plotModel" ng-click="cycleModel()" width="760" height="500"></plot-model>
-        </div>
-        <div>
-            Degree: <input type="number" min="1" step="1" ng-model="mParms.num_basis" ng-change="updateModel('num_basis', mParms.num_basis)">
-        </div>
-        <div>Mean Squared Error: {{errors.train.toFixed(5)}}</div>
-    </section>
-</section>
+        <p>
+            There are good answers to these questions, and if you think about them long enough, you might accidentally
+            invent calculus. Rather than belabor the point, let's move on to a calculus based approach.
+        </p>
+    </li>
+    <li>
+        <em>Calculus and linear algebra</em>
+        <p>We're going to swing from an approach where we hope to be wildly lucky - and then will be only approximately
+            correct - to one where we're guaranteed to hit the exact answer square on the head.  One recalls that a big
+            theme in calculus is finding extreme points. So we can take a derivative of \(loss(\mathbf{w})\) with
+            respect to \(\mathbf{w}\), set it equal to zero, and solve for \(\mathbf{w}\).
+        </p>
+        <p>
+            The gradient
+            $$
+            \nabla_{\mathbf{w}}loss(\mathbf{w}) = 2 \sum_{j = 1}^D(\pmb{\phi}(\mathbf{x}_j)\cdot \mathbf{w} - y_j) \pmb{\phi}(\mathbf{x}_j)
+            $$
+            is equal to zero only when
+            $$
+            (\pmb{\phi}(\mathbf{x}_j)\cdot \mathbf{w} - y_j) = 0 \text{ for each } j \in 1, \ldots, D
+            $$
+            This isn't true if your basis functions are identically zero on your features, i.e.,
+            \(\phi_k(\mathbf{x}_j) = 0\) for all \(k\), but that's silly so don't do that.
 
-<section>
+            We can rewrite this as matrix multiplication by setting
+            $$
+            \pmb{\Phi} = \left( \begin{array}{cccc}
+            \phi_0(\mathbf{x}_1)&\phi_1(\mathbf{x}_1)&\cdots&\phi_n(\mathbf{x}_1)\\
+            \phi_0(\mathbf{x}_2)&\phi_1(\mathbf{x}_2)&\cdots&\phi_n(\mathbf{x}_2)\\
+            \vdots & \vdots & \ddots & \vdots \\
+            \phi_0(\mathbf{x}_D)&\phi_1(\mathbf{x}_D)&\cdots&\phi_n(\mathbf{x}_D)
+            \end{array}\right),
+            $$
+            $$
+            \mathbf{y} = \left( \begin{array}{c}
+            y_1 \\
+            y_2 \\
+            \vdots \\
+            y_D
+            \end{array} \right), \text{ and }
+            \mathbf{w} = \left( \begin{array}{c}
+            w_0 \\
+            w_1 \\
+            \vdots \\
+            w_n
+            \end{array} \right).
+            $$
+            Now we need \(\pmb{\Phi}\mathbf{w} = \mathbf{y}\).  Note that \(\pmb{\Phi}\) is a \(D \times (n + 1)\)
+            matrix, where \(D\) is a big number (in particular, \(D > n + 1\)), so we do not expect there to be a
+            solution to this equation.  However, multiplying both sides by \(\pmb{\Phi}^{T}\) gives us the
+            \((n + 1) \times (n+1)\), probably invertible matrix \(\pmb{\Phi}^T\pmb{\Phi}\) on the left side.
+            Specifically,
+            $$
+            \begin{array}{rl}
+            \pmb{\Phi}\mathbf{w} = & \mathbf{y}\\
+            \pmb{\Phi}^T\pmb{\Phi}\mathbf{w} = & \pmb{\Phi}^T\mathbf{y}\\
+            (\pmb{\Phi}^T\pmb{\Phi})^{-1}(\pmb{\Phi}^T\pmb{\Phi})\mathbf{w} =& (\pmb{\Phi}^T\pmb{\Phi})^{-1}\pmb{\Phi}^T\mathbf{y} \\
+            \mathbf{w} =& (\pmb{\Phi}^T\pmb{\Phi})^{-1}\pmb{\Phi}^T\mathbf{y}.
+            \end{array}
+            $$
+            Note that we assumed that a solution existed (when in fact, we expect that none does).  However, this
+            solution does minimize the loss function (for very similar reasons to the above derivation).  Back of the
+            envelope calculations say that as \(D\) gets large (say, 1,000,000), then computing the pseudoinverse above
+            will take prohibitively long.
+        </p>
+    <li>
+        <em>Back to calculus</em>
+        <p>
+            Going back to calculus, we end up with the most common solution to minimizing a function, using a process
+            called <em>gradient descent</em>.  We calculated the gradient earlier, and might remember from calculus that
+            $$
+            \mathbf{x} \cdot \mathbf{y} = |\mathbf{x}||\mathbf{y}| \cos{\theta},
+            $$
+            where \(\mathbf{x}\) and \(\mathbf{y}\) are vectors, and \(\theta\) the angle between them. The slope of a
+            function \(f\) with gradient \(\nabla f\) in the direction \(\mathbf{u}\) is \(\nabla f \cdot \mathbf{u}\).
+            Since cosine has a minimum of -1 when two vectors point in opposite directions, we choose to travel in
+            the direction \(\mathbf{u} = -\nabla f\) in order to "decrease" \(f\) as quickly as possible.  This process
+            is called gradient descent, and may be written in pseudocode as
+        </p>
+            <pre><code>
+                step_size = 0.001
+                x_new, x_old = 0, 100
+                while abs(x_new - x_old) > 0.01:
+                x_old = x_new
+                x_new = x_new - step_size * gradient(f)(x_new)
+            </code></pre>
+        <p>
+            Anyways, we'll assume you know how to minimize functions from here on out.
+        </p>
+    </li>
+</ol>
 
-    <section>
-        <h2>A Less Naive Approach</h2>
+<h2><a href="#modelBuilding" name="modelBuilding">></a>Model Building</h2>
+<p>
+    Armed with our new found knowlege, a great way of working seems to be to take our data set, create a ton of
+    basis functions, and fit a model with very low error.  Unfortunately, we then move from our training data to a
+    set of (hopefully) test data or (probably) real data, and find we do spectacularly poorly.
+</p>
 
-        <ul>
-            <li>
-                Split data into training and testing sets
-            </li>
-            <li>
-                Create a bunch of basis functions
-            </li>
-            <li>
-                Fit model on subset of basis functions and the training data
-            </li>
-            <li>
-                Choose model with smallest testing error
-            </li>
-        </ul>
-    </section>
-    <section>
-        <div>
-            <plot-model model-point="trainModel" model-line="plotModel" ng-click="cycleModel()" width="350" height="250"></plot-model>
-            <plot-model model-point="testModel" model-line="plotModel" ng-click="cycleModel()" width="350" height="250"></plot-model>
-        </div>
-        <div>
-            Degree: <input type="number" min="1" step="1" ng-model="mParms.num_basis" ng-change="updateModel('num_basis', mParms.num_basis)">
-        </div>
-        <div>
-            Mean Squared Train Error: {{errors.train.toFixed(5)}}
-            <br>
-            Mean Squared Test Error: {{errors.test.toFixed(5)}}
-        </div>
-    </section>
+<plot-model model-point="trainModel" model-line="plotModel" ng-click="cycleModel()" width="760" height="500"></plot-model>
 
-</section>
+<p>
+    A less naive approach would be recognizing that we'll be judged on our performance on this test or real data, and
+    plan for this.  So let's first split our data into a "training" and "testing" set, then create a ton of basis
+    functions.  Now instead of creating one function with very low training error, we will choose successive subsets of
+    our basis functions, and choose the model that has the lowest testing error.  We say that this model
+    <em>generalizes</em> well.  This is a good approach, but if we have, say, 1000 basis functions, testing all
+    \(2^{1000} \approx 10^{300}\) possible subsets of these is prohibitive (in general, any number over \(10^8\) should
+    make you at least hesitate).
+</p>
 
-<section>
+<p>
+    Our least naive (and often used in practice) approach involves what is called <em>regularization</em>, and is the
+    whole point of this essay.  We design a smarter loss function which penalizes a model for being too complicated,
+    and automatically (mostly) picks a good model for us.  In particular, we will minimize either
+    $$
+    \sum_{j=1}^D (y_j - \mathbf{w} \cdot \pmb{\phi}(\mathbf{x}_j))^2 + C\|\mathbf{w}\|_2^2
+    $$
+    or
+    $$
+    \sum_{j=1}^D (y_j - \mathbf{w} \cdot \pmb{\phi}(\mathbf{x}_j))^2 + C\|\mathbf{w}\|_1,
+    $$
+    where \(C\) is some constant we have to pick, and
+    $$
+    \|\mathbf{w}\|_p := \left(\sum w_j^p \right)^{\frac{1}{p}}
+    $$
+    is called the \(\ell^p\)-norm of a vector \(\mathbf{w}\).  Using the first loss function to train a model is called
+    <em>Ridge regression</em>, and the second is called <em>Lasso</em> regression.  Note that the \(\ell^1\)-norm is
+    just the sum of the absolute values, and the \(\ell^2\)-norm squared is the sum of squares.
+</p>
 
-    <section>
-        <h2>A Typical Approach</h2>
-
-        <ul>
-            <li>
-                Split data into training and testing sets
-            </li>
-            <li>
-                Create a bunch of basis functions
-            </li>
-            <li>
-                Choose weights to minimize either squared training error or
-                $$ \sum_{j=1}^D (y_j - \mathbf{w} \cdot \phi(\mathbf{x}_j))^2 + C\|\mathbf{w}\|_2^2 $$
-                or
-                $$ \sum_{j=1}^D (y_j - \mathbf{w} \cdot \phi(\mathbf{x}_j))^2 + C\|\mathbf{w}\|_1 $$
-            </li>
-        </ul>
-    </section>
-
-</section>
-
-<section>
-
-    <h2>A Typical Approach</h2>
+<p>
+    To get our best model, we still have to choose a value for \(C\), and which type of regularization we want (Ridge
+    or Lasso or none), and in order to do this, we will typically write a loop like this:
+</p>
     <pre><code>
         errors = []
         for penalty in (None, 'l1', 'l2'):
         for constant in (0.001, 0.03, 0.1, 0.3, 1):
         model = linear_regression.fit(training_data, penalty, constant)
         errors.append(
-        sum(
-        model.fit(testing_data.features) - testing_data.labels
-        ) ** 2
+        sum(model.fit(testing_data.features) - testing_data.labels) ** 2
         )
     </code></pre>
-</section>
+<p>
+    Choosing the set of parameters with the least testing errors gives us our desired model.
+</p>
 
-
-<section>
-
-    <section>
-
-        <h2>Motivating Loss Function</h2>
-        <div class="eqnbox">
-            <br>
-            $$y(\mathbf{x}, \mathbf{w}) = \mathbf{w} \cdot \phi(\mathbf{x}) + \mathscr{N}(0, \sigma^2)$$
-            <br>
-        </div>
-        The <em>likelihood</em> is given by
-        <div class="eqnbox">
-            <br>
-            $$p(y | \mathbf{x}, \mathbf{w}) \propto \exp{\left(-\frac{(y - \mathbf{w} \cdot \phi(\mathbf{x}))^2}{2 \sigma^2}\right)}$$
-            <br>
-        </div>
-    </section>
-
-    <section>
-
-        <h2>Normal Distribution</h2>
-
-        <ul>
-            <li>
-                \(\mathscr{N}(x | \mu, \sigma) = \frac{1}{\sigma \sqrt{2 \pi}}e^{-\frac{(x - \mu)^2}{2 \sigma^2}}\)
-            </li>
-            <li>
-                \(\mu\) is the mean, \(\sigma\) is the standard deviation (these are theorems, not definitions)
-            </li>
-            <li>
-                \(\mathscr{N}(\mu, \sigma)\) is a random variable with mean \(\mu\), variance \(\sigma^2\)
-            </li>
-        </ul>
-    </section>
-
-    <section>
-        <h2>Why the normal distribution?</h2>
-        Something something something central limit theorem. Analytically tractable.  Gives least squares.
-    </section>
-
-</section>
-
-<section ng-click="cycleData()" ng-blur="restoreDefaults()">
-    <plot-points point-data="data"></plot-points>
-    <div>
-        {{parameters.trainingPoints}} points drawn from
-        <br>
-        <span mathjax-bind="latexGenFunc"></span>
-    </div>
-</section>
-
-<section>
-    <h2>Motivating Loss Function</h2>
-    $$\mathscr{D} = \{(y_1, \mathbf{x}_1), \ldots, (y_N, \mathbf{x}_N)\}$$
-    <div class="eqnbox">
-        $$
-        \begin{align}
-        p(\mathscr{D} | \mathbf{w}) &= \prod_{j=1}^N p(y_j | \mathbf{x}_j, \mathbf{w}) \\
-        & \propto \exp{\sum_{j=1}^N -\frac{(y_j - \mathbf{w} \cdot \mathbf{x_j})^2}{2 \sigma^2}}
-        \end{align}
-        $$
-    </div>
-</section>
-
-<section>
-    <h2>Motivating Loss Function</h2>
-    Maximizing $$\exp{\sum_{j=1}^N -\frac{(y_j - \mathbf{w} \cdot \mathbf{x_j})^2}{2 \sigma^2}}$$
-    is equivalent to mimimizing
-    $$ \sum_{j=1}^N (y_j - \mathbf{w} \cdot \mathbf{x_j})^2 $$
-</section>
-
-<section>
-
-    <section>
-        <h2>More priors</h2>
-        What if we had some <em>prior expectations</em> about the weights of the model?
-        <ul>
-            <li>
-                If we expect the weights to all be fairly small, we might write \(\mathbf{w} \sim \mathscr{N}(0, \tau)\),
-                where \(\tau\) is a measure of how small we expect the weights to be.
-            </li>
-            <li>
-                We might also write \(\mathbf{w} \sim \text{Laplace}(0, \tau)\),
-                where \(\tau\) is again again a scale parameter.
-            </li>
-        </ul>
-    </section>
-
-    <section>
-        <h2>Laplace Distribution</h2>
-        <ul>
-            <li>
-                \(\text{Laplace}(x | \mu, \tau) = \frac{1}{2\tau}e^{-\frac{|x - \mu|}{\tau}}\)
-            </li>
-            <li>
-                \(\mu\) is the mean, \(\tau\sqrt{2}\) is the standard deviation
-            </li>
-        </ul>
-    </section>
-
-</section>
-
-<section>
-    <h2>More priors</h2>
-    Using Bayes' theorem
+<p>
+    As a point of fact, we will typically actually divide our data into training, cross validation, and testing sets.
+    The model will be trained (with a regularization penalty) on the training set, then we choose the model which
+    has the least loss (without a regularization penalty) on the cross validation set.  The testing set will tell
+    us what sort of performance to expect in the future.  This is necessary since we may test enough parameters to
+    "overfit" on the cross validation set.  In general, we'd expect
     $$
-    p(\mathbf{w} | \mathscr{D}, \tau) \propto p(\mathscr{D} | \mathbf{w}, \tau) p(\mathbf{w}| \tau)
+    \text{training error < cross validation error < testing error}.
     $$
-    <br>
+</p>
+
+<h2><a href="#bayesianLoss" name="bayesianLoss">></a>A Bayesian Approach</h2>
+<p>
+    Previously, we accepted that we would try to minimize the squared loss, because it seemed reasonable.  Later, we
+    added various penalties because <em>they</em> seemed reasonable.  It turns out we can make explicit certain
+    assumptions about our data, and in fact derive that we then <em>must</em> use these loss functions.
+</p>
+
+<aside>
+    Recall the probability density function for the normal distribution is given by
+    $$\mathscr{N}(x | \mu, \sigma) = \frac{1}{\sigma \sqrt{2 \pi}}e^{-\frac{(x - \mu)^2}{2 \sigma^2}}$$
+</aside>
+<p>
+    A strategy that is startlingly effective in mathematics is to imagine we know the solution, and see what properties
+    the solution must satisfy.  In this case, we'll find it useful to imagine we knew how our data was generated.  A
+    reasonable assumption is that our basis functions can capture some, but not all, of the variance in a process, with
+    the error being distributed normally.  Explicitly,
+    $$
+    y(\mathbf{x}, \mathbf{w}) = \mathbf{w} \cdot \pmb{\phi}(\mathbf{x}) + \mathscr{N}(0, \sigma^2),
+    $$
+    where the noise represents variables we haven't accounted for, or perhaps measurement error.
+</p>
+
+<p>
+    Asking why we think our error is normally distributed is a great question.  Two answers are (1) that the normal
+    distribution shows up in
+    <a href="http://en.wikipedia.org/wiki/Central_limit_theorem">a surprising number of places</a> ,
+    and (2) the resulting problem is analytically tractable,
+    meaning it will be instructive if you want to strike out on your own with a more exotic distribution.
+</p>
+
+<aside>
+    Since we'll be maximizing functions with respect to \(\mathbf{w}\), we'll feel free to drop multiplicative
+    factors which don't depend on \(\mathbf{w}\).
+</aside>
+<p>
+    In any case, having written down the probability density function for our data, we may ask the <em>likelihood</em>
+    of seeing a data point, given our features \(\mathbf{x}\) and weights \(\mathbf{w}\).  Namely
+    $$
+    p(y | \mathbf{x}, \mathbf{w}) \propto \exp{\left(-\frac{(y - \mathbf{w} \cdot \phi(\mathbf{x}))^2}{2 \sigma^2}\right)}.
+    $$
+    Going further, if we are given a data set
+    $$
+    \mathscr{D} = \{(y_1, \mathbf{x}_1),\ldots,(y_D, \mathbf{x}_D)\},
+    $$
+    the probability of this data is the product of seeing each of the individual data points (assuming they are drawn
+    independently).  A nice property of the exponential is that this product turns into a sum, and we get
+    $$
+    p(\{y_j\} | \{\mathbf{x}_j\}, \mathbf{w}) \propto \exp{\left(-\sum_{j=1}^D\frac{(y_j - \mathbf{w} \cdot \phi(\mathbf{x}_j))^2}{2 \sigma^2}\right)}.
+    $$
+    Notice two things:
+</p>
+<ol>
+    <li>
+        This number is extraordinarly small (though that doesn't really matter), and
+    </li>
+    <li>
+        We may choose a \(\mathbf{w}\) to maximize this probability.  This will be called the <em>maximum
+        likelihood estimator</em> for \(\mathbf{w}\), and (spoiler!) will be equivalent to minimizing the mean squared
+        error.
+    </li>
+</ol>
+<p>
+    In fact, this last statement can be seen through inspection.  If we would like to maximize \(e^{-x}\), we would make
+    \(x\) as small as possible.  In our above example, \(x\) is the sum of the squared difference (divided by the standard
+    deviation), so the maximum likelihood estimator for \(\mathbf{w}\) is the weight vector which minimizes
+    $$
+    \sum_{j=1}^D(y_j - \mathbf{w} \cdot \phi(\mathbf{x}_j))^2.
+    $$
+</p>
+
+<p>
+    This might be considered a <em>frequentist</em> approach to this regression problem: we were given some data, and
+    chose our parameters to maximize the probability of seeing that data given the weights.  What if instead, we made
+    some assumptions about our weights, and maximized instead the probability of seeing our weights given our data.
+    Those with enough schooling will hear that and get nervous that Bayes' Theorem is about to show up.  Indeed, the
+    easiest way to remember Bayes Theorem is to recall that it has something to do with the symmetry of \(p(A, B)\),
+    where \(A\) and \(B\) are some events.  In particular, we just need to know that
+</p>
+<ol>
+    <li>
+        \(p(A,B) = p(B,A)\), and
+    </li>
+    <li>
+        \(p(A,B) = p(A | B) p(B)\).
+    </li>
+</ol>
+<p>
+    Then we get that \(p(A | B) p(B) = p(A,B) = p(B,A) = p(B | A) p(A)\).  Dividing through, Bayes' Theorem says
+    $$
+    p(A|B) = \frac{p(B | A) p(A)}{p(B)}.
+    $$
+</p>
+
+<aside>
+    The probability density function for the Laplace distribution is given by
+    $$Laplace(x | \mu, \sigma) = \frac{1}{2 \sigma}e^{-\frac{|x - \mu|}{\sigma}}$$
+</aside>
+<p>
+    Back to the problem at hand, we already calculated \(p(\mathscr{D} | \mathbf{w})\), so we might like to write down
+    some prior for our weights, \(p(\mathbf{w})\).  In particular, recalling our strategy outlined earlier of making
+    just a boatload of basis functions, we might imagine that no weight ought to be particularly large.  More
+    specifically, that it is <em>unlikely</em> that a large weight occurs.  Then perhaps we have a normal prior on our
+    weights, with mean 0 and some spread controlled by \(\tau\):
+    $$
+    p(w_j|\tau) \sim \mathscr{N}(0, \tau).
+    $$
+    If we in fact expect the weights to be mostly 0, the the Laplace prior might be more reasonable, again with mean
+    0 and some spread controlled by \(\tau\):
+    $$
+    p(w_j|\tau) \sim Laplace(0, \tau).
+    $$
+</p>
+
+<p>
+    Going back to Bayes' theorem,
+    $$
+    p(\mathbf{w} | \mathscr{D}, \tau) \propto p(\mathscr{D} | \mathbf{w}, \tau) p(\mathbf{w}| \tau).
+    $$
+    We had great success with the minimizing negative log likelihood earlier, so trying that again turns this
+    multiplication into addition, and gives
     $$
     \begin{align}
     -\log{\left(p(\mathbf{w} | \mathscr{D}, \tau)\right)} &\propto -\log{\left(p(\mathscr{D} | \mathbf{w}, \tau)\right)} - \log{\left(p(\mathbf{w}, \tau)\right)} \\
     &= \frac{\sum (y_j - \mathbf{w} \cdot \mathbf{x}_j)^2}{2 \sigma^2} - \log{\left(p(\mathbf{w}, \tau)\right)}
     \end{align}
     $$
-</section>
+    Taking the negative log of the normal prior on the weights tells us that maximizing the probability of our weights
+    given the data is equivalent to minimizing
 
-<section>
-    <h2>Ridge Regression</h2>
     $$
-    p(\mathbf{w}, \tau) \propto \exp{\left(-\frac{\|\mathbf{w}\|_2^2}{2\tau^2}\right)}
+    \sum_{j=1}^D (y_j - \mathbf{w} \cdot \mathbf{x}_j)^2 + C \|\mathbf{w}\|_2^2.
     $$
-    $$
-    loss(w) = \|\mathbf{y} - \mathbf{X}\mathbf{w}^T\|^2 + \left(\frac{\sigma}{\tau}\right)^2\|\mathbf{w}\|_2^2
-    $$
-</section>
-<section>
-    <h2>Lasso Regression</h2>
-    $$
-    p(\mathbf{w}, \tau) \propto \exp{\left(-\frac{\|\mathbf{w}\|_1}{\tau}\right)}
-    $$
-    $$
-    loss(w) = \|\mathbf{y} - \mathbf{X}\mathbf{w}^T\|^2 + \frac{2\sigma^2}{\tau}\|\mathbf{w}\|_1
-    $$
-</section>
+    This is exactly <em>Ridge regression</em>, as defined earlier.  Notice if we were a little more careful, we could
+    write down \(C\) as a function of \(\sigma\) and \(\tau\), but in practice it is difficult to think of a great use
+    for recovering those numbers.
+</p>
 
+<p>
+    Similarly, taking the negative log of the Laplace prior on the weights will leave us with Lasso regression.  Again,
+    we have the extra intuition that maximizing the probability of our weights given the data (and the assumption that
+    the weights are Laplace distributed) is equivalent to minimizing
+    $$
+    \sum_{j=1}^D (y_j - \mathbf{w} \cdot \mathbf{x}_j)^2 + C \|\mathbf{w}\|_1.
+    $$
+</p>
 
+<h2><a href="#regularizationGeometry" name="regularizationGeometry">></a>The Geometry of Regularization</h2>
+<p>
+    As a pleasant aside, there is also some beautiful geometry to regularization.  Namely, each of Ridge regression and
+    Lasso regression seeks to minimize a weighted average between two different norms.  This weighted average
+    is the \(\ell^2\) distance between \(y(\mathbf{x}_j, \mathbf{w})\) and \(y_j\) plus the \(\ell^1\)- or
+    \(\ell^2\)-size of \(\mathbf{w}\).  It turns out the the unit ball
+    defined by the \(\ell^p\)-norm is a circle with \(p = 2\), a diamond when \(p  =1\), and gets close to a square as
+    \(p \to \infty\).  Intuitively, the unit ball gets "spikier" as \(p\) gets smaller.  Then it is more likely that the
+    (round) ball around \(y(\mathbf{x}_j, \mathbf{w})\) will meet the (diamond) ball around the origin on one of the
+    axes, which leads to a more "sparse" solution for \(\mathbf{w}\).
+</p>
 </body>
 </html>
