@@ -496,6 +496,12 @@ $$ y = \pmb{\phi}(\mathbf{x}) \cdot \mathbf{w}.$$
     located <em>exactly</em> on deterministic function, then we add some normally distributed random number to each
     data point.
 </p>
+<div ng-controller="PointNoiseController">
+    <plot-noise-points point-data="data" ng-click="cycle()"></plot-noise-points>
+    <br>
+    {{trainingPoints}} points drawn from
+    <span mathjax-bind="funcName"></span>
+</div>
 
 <p>
     Asking why we think our error is normally distributed is a great question.  Two answers are (1) that the normal
