@@ -136,9 +136,6 @@ $$ y = \pmb{\phi}(\mathbf{x}) \cdot \mathbf{w}.$$
         in your feature space.
         <plot-line line-data="sigmoidData"></plot-line>
         <div>
-            <div class="arrow-up" ng-click="updateSigmoid('up')"></div>
-            location
-            <div class="arrow-down" ng-click="updateSigmoid('down')"></div>
             Edit location:
             <input type="number" min="-1" max="1" step="0.1" ng-model="sigmoidLoc" ng-change="updateSigmoid()">
         </div>
@@ -236,14 +233,7 @@ $$ y = \pmb{\phi}(\mathbf{x}) \cdot \mathbf{w}.$$
             $$
             \nabla_{\mathbf{w}}loss(\mathbf{w}) = 2 \sum_{j = 1}^D(\pmb{\phi}(\mathbf{x}_j)\cdot \mathbf{w} - y_j) \pmb{\phi}(\mathbf{x}_j)
             $$
-            is equal to zero only when
-            $$
-            (\pmb{\phi}(\mathbf{x}_j)\cdot \mathbf{w} - y_j) = 0 \text{ for each } j \in 1, \ldots, D
-            $$
-            This isn't true if your basis functions are identically zero on your features, i.e.,
-            \(\phi_k(\mathbf{x}_j) = 0\) for all \(k\), but that's silly so don't do that.
-
-            We can rewrite this as matrix multiplication by setting
+            can be rewritten using matrix notation by setting
             $$
             \pmb{\Phi} = \left( \begin{array}{cccc}
             \phi_0(\mathbf{x}_1)&\phi_1(\mathbf{x}_1)&\cdots&\phi_n(\mathbf{x}_1)\\
@@ -266,21 +256,18 @@ $$ y = \pmb{\phi}(\mathbf{x}) \cdot \mathbf{w}.$$
             w_n
             \end{array} \right).
             $$
-            Now we need \(\pmb{\Phi}\mathbf{w} = \mathbf{y}\).  Note that \(\pmb{\Phi}\) is a \(D \times (n + 1)\)
-            matrix, where \(D\) is a big number (in particular, \(D > n + 1\)), so we do not expect there to be a
-            solution to this equation.  However, multiplying both sides by \(\pmb{\Phi}^{T}\) gives us the
-            \((n + 1) \times (n+1)\), probably invertible matrix \(\pmb{\Phi}^T\pmb{\Phi}\) on the left side.
+            Now we have \(\pmb{\Phi}^T\pmb{\Phi}\mathbf{w} = \pmb{\Phi}^T\mathbf{y}\).  Note that \(\pmb{\Phi}\) is a
+            \(D \times (n + 1)\) matrix, where \(D\) is a big number (in particular, \(D > n + 1\)). However,
+            \(\pmb{\Phi}^{T}\pmb{\Phi}\) is an \((n + 1) \times (n+1)\), (probably) invertible matrix.  Then
             Specifically,
             $$
             \begin{array}{rl}
-            \pmb{\Phi}\mathbf{w} = & \mathbf{y}\\
             \pmb{\Phi}^T\pmb{\Phi}\mathbf{w} = & \pmb{\Phi}^T\mathbf{y}\\
             (\pmb{\Phi}^T\pmb{\Phi})^{-1}(\pmb{\Phi}^T\pmb{\Phi})\mathbf{w} =& (\pmb{\Phi}^T\pmb{\Phi})^{-1}\pmb{\Phi}^T\mathbf{y} \\
             \mathbf{w} =& (\pmb{\Phi}^T\pmb{\Phi})^{-1}\pmb{\Phi}^T\mathbf{y}.
             \end{array}
             $$
-            Note that we assumed that a solution existed (when in fact, we expect that none does).  However, this
-            solution does minimize the loss function (for very similar reasons to the above derivation).  Back of the
+            This solution will minimize the loss function, and be an exact answer.  Back of the
             envelope calculations say that as \(D\) gets large (say, 1,000,000), then computing the pseudoinverse above
             will take prohibitively long.
         </p>
@@ -306,28 +293,58 @@ $$ y = \pmb{\phi}(\mathbf{x}) \cdot \mathbf{w}.$$
                 x_new = x_new - step_size * gradient(f)(x_new)
             </code></pre>
         <p>
-            Anyways, we'll assume you know how to minimize functions from here on out.
+            Anyways, we'll assume you (or your computer) know how to minimize functions from here on out.
         </p>
     </li>
 </ol>
 
 <h2><a href="#modelBuilding" name="modelBuilding">></a>Model Building</h2>
 <p>
-    Armed with our new found knowlege, a great way of working seems to be to take our data set, create a ton of
+    Armed with our new found knowledge, a great way of working seems to be to take our data set, create a ton of
     basis functions, and fit a model with very low error.  Unfortunately, we then move from our training data to a
-    set of (hopefully) test data or (probably) real data, and find we do spectacularly poorly.
+    set of (hopefully) test data or (probably) real data, and find we do spectacularly poorly. This phenomena is called
+    <em>overfitting</em>.
 </p>
 
-<plot-model model-point="trainModel" model-line="plotModel" ng-click="cycleModel()" width="760" height="500"></plot-model>
+<p>
+    We provide a sandbox below to fit a linear model to some sample data.  You may choose how many basis functions to
+    use, and there is a solver running in the background which will find the best fit.  We additionally use 100 points
+    sampled from the same function as the training data to compute your mean error.  You can see graphically below when
+    the model looks overfit, but in the real world, \(x\) will be a vector of dimension greater than two, and
+    visualizing your fit in this manner will be difficult.  We'll discuss better ways to detect overfitting later.
+    Click on the plot to generate a new training set.
+</p>
+
+<div ng-controller="NaiveModelCtrl">
+    <plot-line-points line-data="plotModel" point-data="trainModel" ng-click="randomFunc()"></plot-line-points>
+    <span mathjax-bind="tex"></span>
+    <div>
+        <div style="display: inline-block">
+            <h3>Basis Functions</h3>
+            <div ng-repeat="(key, value) in basisCounts">
+                <span> <label>{{key}} bases: </label> <input type="number" min="0" step="1" ng-model=value ng-change="updateBasis(key, value)"></span>
+            </div>
+        </div>
+        <div style="display: inline-block">
+            <h3>Error</h3>
+            <div>
+                Training: {{errors.train.toFixed(4)}}
+            </div>
+            <div>
+                Testing: {{errors.test.toFixed(4)}}
+            </div>
+        </div>
+    </div>
+</div>
 
 <p>
-    A less naive approach would be recognizing that we'll be judged on our performance on this test or real data, and
-    plan for this.  So let's first split our data into a "training" and "testing" set, then create a ton of basis
-    functions.  Now instead of creating one function with very low training error, we will choose successive subsets of
-    our basis functions, and choose the model that has the lowest testing error.  We say that this model
-    <em>generalizes</em> well.  This is a good approach, but if we have, say, 1000 basis functions, testing all
-    \(2^{1000} \approx 10^{300}\) possible subsets of these is prohibitive (in general, any number over \(10^8\) should
-    make you at least hesitate).
+    A less naive approach (and one you likely found on your own) would be recognizing that we'll be judged on our
+    performance on this test or real data, and plan for this.  So let's first split our data into a "training" and
+    "testing" set, then create a ton of basis functions.  Now instead of creating one function with very low training
+    error, we will choose successive subsets of our basis functions, and choose the model that has the lowest testing
+    error.  We say that this model (that is, the model with lowest testing error) <em>generalizes</em> well.  This is a
+    good approach, but if we have, say, 1000 basis functions, testing all \(2^{1000} \approx 10^{300}\) possible
+    subsets of these is prohibitive (in general, any number over \(10^8\) should make you at least hesitate).
 </p>
 
 <p>
@@ -351,6 +368,45 @@ $$ y = \pmb{\phi}(\mathbf{x}) \cdot \mathbf{w}.$$
 </p>
 
 <p>
+    Below, we give you the same sandbox as earlier, but you may now also choose the type of regularization to apply,
+    and the regularization strength.
+</p>
+
+<div ng-controller="RegularModelCtrl">
+    <plot-line-points line-data="plotModel" point-data="trainModel" ng-click="randomFunc()"></plot-line-points>
+    <span mathjax-bind="tex"></span>
+    <div>
+        <div style="display: inline-block">
+            <h3>Basis Functions</h3>
+            <div ng-repeat="(key, value) in basisCounts">
+                <span> <label>{{key}} bases: </label> <input type="number" min="0" step="1" ng-model=value ng-change="updateBasis(key, value)"></span>
+            </div>
+        </div>
+        <div style="display: inline-block">
+            <h3>Model Type</h3>
+            <select ng-model="modelType" ng-options="model.name for model in modelTypes"></select>
+        </div>
+        <div style="display: inline-block">
+            <h3>Regularization Strength</h3>
+            <span>
+                <label>Regularization Strength: </label>
+                <input type="number" min="0" step="0.01" ng-model=regStrength ng-change="updateC(regStrength)">
+            </span>
+        </div>
+        <div style="display: inline-block">
+            <h3>Error</h3>
+            <div>
+                Training: {{errors.train.toFixed(4)}}
+            </div>
+            <div>
+                Testing: {{errors.test.toFixed(4)}}
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<p>
     To get our best model, we still have to choose a value for \(C\), and which type of regularization we want (Ridge
     or Lasso or none), and in order to do this, we will typically write a loop like this:
 </p>
@@ -364,8 +420,43 @@ $$ y = \pmb{\phi}(\mathbf{x}) \cdot \mathbf{w}.$$
         )
     </code></pre>
 <p>
-    Choosing the set of parameters with the least testing errors gives us our desired model.
+    Choosing the set of parameters with the least testing errors gives us our desired model.  We let you choose the
+    set of basis vectors we consider when fitting a model, and provide a final sandbox that runs (essentially) the
+    code above to fit itself.  Add bunches of basis functions, fit a model, and click on the diagram to generate a
+    new training set.
 </p>
+
+<div ng-controller="BestModelCtrl">
+    <plot-line-points line-data="plotModel" point-data="trainModel" ng-click="randomFunc()"></plot-line-points>
+    <span mathjax-bind="tex"></span>
+    <p>
+        Fit with {{modelType.name.toLowerCase()}}, and regularization constant of {{regStrength.toFixed(5)}}.
+    </p>
+    <div>
+        <div style="display: inline-block">
+            <h3>Basis Functions</h3>
+            <div ng-repeat="(key, value) in basisCounts">
+                <span> <label>{{key}} bases: </label> <input type="number" min="0" step="1" ng-model=value ng-change="updateBasis(key, value)"></span>
+            </div>
+        </div>
+
+        <div style="display: inline-block">
+            <h3>Find Best Model</h3>
+            <button ng-click="getBestModel()">Click Me!</button>
+        </div>
+
+        <div style="display: inline-block">
+            <h3>Error</h3>
+            <div>
+                Training: {{errors.train.toFixed(4)}}
+            </div>
+            <div>
+                Testing: {{errors.test.toFixed(4)}}
+            </div>
+        </div>
+    </div>
+</div>
+
 
 <p>
     As a point of fact, we will typically actually divide our data into training, cross validation, and testing sets.
@@ -398,6 +489,12 @@ $$ y = \pmb{\phi}(\mathbf{x}) \cdot \mathbf{w}.$$
     y(\mathbf{x}, \mathbf{w}) = \mathbf{w} \cdot \pmb{\phi}(\mathbf{x}) + \mathscr{N}(0, \sigma^2),
     $$
     where the noise represents variables we haven't accounted for, or perhaps measurement error.
+</p>
+
+<p>
+    Below, we give an example of what this assumption means graphically: we draw some number of data points which are
+    located <em>exactly</em> on deterministic function, then we add some normally distributed random number to each
+    data point.
 </p>
 
 <p>
