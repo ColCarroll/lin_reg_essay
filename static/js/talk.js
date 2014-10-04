@@ -67,13 +67,14 @@ essay.controller('ManualRegression',
 
 essay.controller('basisCtrl',
     function TalkCtrl($scope) {
-        var plottingPoints = 100;
-        var stepSize = 2 / (plottingPoints - 1);
+        var plottingPoints = 200;
+        var stepSize = 4 / (plottingPoints - 1);
         $scope.x = d3.range(plottingPoints).map(function(i) {
-            return i * stepSize - 1;
+            return i * stepSize - 2;
         });
         $scope.polyDegree = 2;
         $scope.updatePoly = function(){
+            $scope.polyDegree = Math.round($scope.polyDegree);
             $scope.polyData = $scope.x.map(function(x){
                 return {"x": x, "y": Math.pow(x, $scope.polyDegree)}
             })
@@ -82,23 +83,7 @@ essay.controller('basisCtrl',
 
         $scope.sigmoidSpread = 5;
         $scope.sigmoidLoc = 0;
-        $scope.updateSigmoid = function(direction){
-            var spreadDel = 1.0;
-            var locDel = 0.1;
-            switch(direction){
-                case "up":
-                    $scope.sigmoidSpread += spreadDel;
-                    break;
-                case "down":
-                    $scope.sigmoidSpread -= spreadDel;
-                    break;
-                case "left":
-                    $scope.sigmoidLog += locDel;
-                    break;
-                case "right":
-                    $scope.sigmoidLog -= locDel;
-                    break;
-            }
+        $scope.updateSigmoid = function(){
             $scope.sigmoidData = $scope.x.map(function(x){
                 return {"x": x, "y": 1.0 / (1 + Math.exp(-$scope.sigmoidSpread * (x + $scope.sigmoidLoc)))}
             })
@@ -298,7 +283,7 @@ essay.controller('NaiveModelCtrl',
 
 
 essay.controller('PointNoiseController',
-    function TalkCtrl($scope) {
+    function PointNoiseCtrl($scope) {
         $scope.trainingPoints = 50;
         $scope.noise = 0.05;
         $scope.generatingFunction = generatingFunctions["x^2"];
@@ -328,6 +313,50 @@ essay.controller('PointNoiseController',
             $scope.trainingPoints = Math.round(Math.random() * 200);
             $scope.getCoords()
         };
+
+        setInterval(function() {
+            $scope.cycle();
+            $scope.$digest();
+        }, 5000
+        );
+    }
+
+);
+
+essay.controller('EllPController',
+    function EllPCtrl($scope) {
+        var numPoints = 100;
+        $scope.x = d3.range(numPoints + 1).map(function(i) {
+           return i/numPoints;
+        });
+        $scope.p = 2.0;
+
+        $scope.setFuncName = function(){
+            $scope.funcName = "\\{x \\in \\mathbb{R}^2 : \\|x\\|_{\\ell^{" + $scope.p + "}} = 1\\}"
+        };
+
+        $scope.getCoords = function () {
+            var topRightData = $scope.x.map(function(d) {
+                var y = Math.pow(1 - Math.pow(d, $scope.p), 1 / $scope.p);
+                return {"x": d, "y": y}
+            });
+            var bottomRightData = topRightData.map(function(d) {
+                return {"x": d.x, "y": -d.y};
+            });
+            bottomRightData.reverse();
+            var rightData = topRightData.concat(bottomRightData);
+            var leftData = rightData.map(function(d) {
+                return {"x": -d.x, "y": d.y};
+            });
+            leftData.reverse();
+            $scope.data= rightData.concat(leftData);
+        };
+
+        $scope.update = function(){
+            $scope.setFuncName();
+            $scope.getCoords();
+        };
+        $scope.update();
     }
 
 );
@@ -476,7 +505,7 @@ essay.directive("plotLine", function() {
             scope: {
                 lineData: '='
             },
-            link: function (scope, element, attrs) {
+            link: function (scope, element) {
                 var svg = d3.select(element[0]).append("svg")
                     .style("width", width + margin.left + margin.right)
                     .style("height", height + margin.top + margin.bottom);
@@ -526,19 +555,16 @@ essay.directive("plotLine", function() {
                     .x(xMap)
                     .y(yMap);
 
+                var path = svg.append("g")
+                    .append("path")
+                    .style("stroke", "#000")
+                    .attr("class", "line");
+
+
                 var renderLinePoints = function () {
                     if (!scope.lineData || isNaN(scope.lineData.length)) return;
                     yScale.domain([d3.min(scope.lineData, yValue) - 0.2, d3.max(scope.lineData, yValue) + 0.2]);
                     xScale.domain([d3.min(scope.lineData, xValue) - 0.2, d3.max(scope.lineData, xValue) + 0.2]);
-
-                    if (typeof path == "undefined") {
-                        var path = svg.append("g")
-                            .append("path")
-                            .style("stroke", "#000")
-                            .datum(scope.lineData)
-                            .attr("class", "line")
-                            .attr("d", line);
-                    }
 
                     path
                         .datum(scope.lineData)
@@ -636,7 +662,7 @@ essay.directive("plotNoisePoints", function() {
                         .attr("cy", function(d){ return yScale(d.y)});
 
                     points.transition()
-                        .duration(500)
+                        .duration(800)
                         .attr("cy", function(d){ return yScale(d.y)})
                         .attr("cx", xMap)
                         .transition()

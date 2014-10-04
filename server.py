@@ -82,7 +82,7 @@ class Model:
     def __init__(self, **kwargs):
         self._func = FUNCS[kwargs.get("func_no", 1)]
         self._noise = kwargs.get("noise", 0.05)
-        self._basis_type = kwargs.get("basis_types", {"polynomial": 1, "gauss": 1, "sigmoid": 1})
+        self._basis_type = kwargs.get("basis_types", {"polynomial": 2, "gauss": 2, "sigmoid": 2})
         self._training_points = kwargs.get("training_points", 30)
         self._testing_points = kwargs.get("testing_points", 200)
         self._model = linear_model.LinearRegression()
