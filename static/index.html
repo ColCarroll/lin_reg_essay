@@ -7,15 +7,28 @@
         Bayesian Linear Regression
     </title>
 
+    <!-- CDNs -->
     <!-- AngularJS -->
-    <script type="text/javascript" src="/js/jquery.min.js"></script>
-    <script type="text/javascript" src="/js/angular.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.2.20/angular.min.js"></script>
 
     <!-- D3js -->
-    <script type="text/javascript" src="/js/d3.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.4.11/d3.min.js"></script>
 
     <!-- MathJax -->
-    <script src="/js/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"> </script>
+
+
+    <!--&lt;!&ndash; Local Development &ndash;&gt;-->
+    <!--&lt;!&ndash; AngularJS &ndash;&gt;-->
+    <!--<script type="text/javascript" src="/js/jquery.min.js"></script>-->
+    <!--<script type="text/javascript" src="/js/angular.js"></script>-->
+
+    <!--&lt;!&ndash; D3js &ndash;&gt;-->
+    <!--<script type="text/javascript" src="/js/d3.min.js"></script>-->
+
+    <!--&lt;!&ndash; MathJax &ndash;&gt;-->
+    <!--<script src="/js/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>-->
 
     <!-- Essay -->
     <style>
@@ -642,6 +655,8 @@ $$ y = \pmb{\phi}(\mathbf{x}) \cdot \mathbf{w}.$$
 <div ng-controller="EllPController">
 <plot-line line-data="data"></plot-line>
      <input type="number" min="0" step="0.1" ng-model=p ng-change="update()"></span>
+    A plot of the set <span mathjax-bind="funcName"></span>.  Note that as \(p \to 0\), the unit \(\ell^p\) ball gets
+    "spikier".
     </div>
 </body>
 </html>
