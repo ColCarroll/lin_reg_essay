@@ -30,8 +30,13 @@ def gen_tex(intercept, coefficients, functions):
     tex_str = "y(x) = "
     if abs(intercept) > 0.01:
         tex_str += "{:.2f}".format(intercept)
+    count = 0
     for coef, func in zip(coefficients, functions):
         if abs(coef) > 0.01:
+            if count >= 5:
+                tex_str += "+ \\cdots"
+                break
+            count += 1
             tex_str += "{:+.2f}{:s}".format(coef, func)
     return tex_str
 
@@ -211,7 +216,7 @@ class Model:
 
 NAIVE_MODEL = Model()
 REGULAR_MODEL = Model()
-BEST_MODEL = Model()
+BEST_MODEL = Model(basis_types={"polynomial": 10, "gauss": 10, "sigmoid": 10})
 
 
 def update_model(model, redirect_route):

@@ -77,7 +77,8 @@ essay.controller('basisCtrl',
             $scope.polyDegree = Math.round($scope.polyDegree);
             $scope.polyData = $scope.x.map(function(x){
                 return {"x": x, "y": Math.pow(x, $scope.polyDegree)}
-            })
+            });
+            $scope.polyTex = "y(x) = x^{" + $scope.polyDegree + "}"
         };
         $scope.updatePoly();
 
@@ -85,8 +86,21 @@ essay.controller('basisCtrl',
         $scope.sigmoidLoc = 0;
         $scope.updateSigmoid = function(){
             $scope.sigmoidData = $scope.x.map(function(x){
-                return {"x": x, "y": 1.0 / (1 + Math.exp(-$scope.sigmoidSpread * (x + $scope.sigmoidLoc)))}
-            })
+                return {"x": x, "y": 1.0 / (1 + Math.exp(-$scope.sigmoidSpread * (x - $scope.sigmoidLoc)))}
+            });
+            $scope.sigmoidTex = "y(x) = \\frac{1}{1 + e^{";
+                if ($scope.sigmoidSpread > 0){
+                    $scope.sigmoidTex += "-" + $scope.sigmoidSpread.toFixed(1)
+                } else {
+                    $scope.sigmoidTex += + (-1 * $scope.sigmoidSpread).toFixed(1);
+                }
+                $scope.sigmoidTex += "x";
+                if ($scope.sigmoidLoc < 0) {
+                    $scope.sigmoidTex += "+" + (-1 * $scope.sigmoidLoc).toFixed(1)
+                } else if ($scope.sigmoidLoc > 0) {
+                    $scope.sigmoidTex += "-" + $scope.sigmoidLoc.toFixed(1)
+                }
+            $scope.sigmoidTex += "}}"
         };
         $scope.updateSigmoid();
 
@@ -95,7 +109,14 @@ essay.controller('basisCtrl',
         $scope.updateGauss = function(){
             $scope.gaussData = $scope.x.map(function(x){
                 return {"x": x, "y": Math.exp(-Math.pow(x - $scope.gaussLoc, 2) / (2 * Math.pow($scope.gaussSpread, 2)))}
-            })
+            });
+            $scope.gaussTex = "y(x) = e^{\\frac{-(x";
+            if ($scope.gaussLoc < 0) {
+                $scope.gaussTex += "+" + (-1 * $scope.gaussLoc).toFixed(1)
+            } else if ($scope.gaussLoc > 0) {
+                $scope.gaussTex += "-" + $scope.gaussLoc.toFixed(1)
+            }
+            $scope.gaussTex += ")^2}{2\\cdot" + $scope.gaussSpread + "^2}}";
         };
         $scope.updateGauss();
     }
@@ -190,15 +211,6 @@ essay.controller('BestModelCtrl',
             }).success($scope.getData)
         };
 
-        $scope.getModel = function(){
-            $http({
-                method: 'GET',
-                url: "/data/best_model"
-            }).success($scope.getData)
-        };
-
-        $scope.getModel();
-
         $scope.updateBasis = function(basisType, newVal){
             $http({
                 method: "GET",
@@ -238,7 +250,12 @@ essay.controller('BestModelCtrl',
 
         };
 
-        $scope.$watch("modelType", $scope.updateModelType)
+        setInterval(function() {
+                $scope.randomFunc();
+                $scope.getBestModel();
+                $scope.$digest();
+            }, 5000
+        );
 
     }
 );
@@ -325,7 +342,7 @@ essay.controller('PointNoiseController',
 
 essay.controller('EllPController',
     function EllPCtrl($scope) {
-        var numPoints = 100;
+        var numPoints = 200;
         $scope.x = d3.range(numPoints + 1).map(function(i) {
            return i/numPoints;
         });
@@ -353,10 +370,18 @@ essay.controller('EllPController',
         };
 
         $scope.update = function(){
+            if(Math.round(10 * $scope.p) == 5.0){
+                $scope.p = 3.0;
+            } else {$scope.p = +($scope.p - 0.5).toFixed(1);}
             $scope.setFuncName();
             $scope.getCoords();
         };
-        $scope.update();
+
+        setInterval(function() {
+                $scope.update();
+                $scope.$digest();
+            }, 5000
+        );
     }
 
 );
@@ -383,7 +408,7 @@ essay.directive("plotLinePoints", function() {
         // constants
         var margin = {top: 20, right: 20, bottom: 30, left: 40},
             height = 500,
-            width=760;
+            width=700;
 
         return {
             restrict: "EA",
@@ -498,7 +523,7 @@ essay.directive("plotLine", function() {
         // constants
         var margin = {top: 20, right: 20, bottom: 30, left: 40},
             height = 500,
-            width=760;
+            width=700;
 
         return {
             restrict: "EA",
@@ -590,7 +615,7 @@ essay.directive("plotNoisePoints", function() {
         // constants
         var margin = {top: 20, right: 20, bottom: 30, left: 40},
             height = 500,
-            width=760;
+            width=700;
 
         return {
             restrict: "EA",
