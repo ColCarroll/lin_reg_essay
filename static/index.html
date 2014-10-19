@@ -64,8 +64,11 @@
     Linear regression can get a bad rap for sounding boring.  Much like linear algebra, where much emphasis is put on
     solving <span class="math">A \vec{x} = \vec{b}</span>, studying linear regression - how to build a model, how to
     tune a model, and what sorts of performance to expect - can yield impressive results in practice.  In particular,
-    one finds that many methods with sexier names are built on top of linear regression.  Neural nets, which seem to be
-    a buzzword these days, use linear regression as its building block.
+    one finds that many methods with sexier names are built on top of linear regression.
+    <a href="http://en.wikipedia.org/wiki/Logistic_regression">Logistic regression</a>, a popular choice in
+    classification tasks, is built on top of linear regression, and
+    <a href="http://en.wikipedia.org/wiki/Artificial_neural_network">neural nets</a>, which seem to be a buzzword these
+    days, use linear regression as its building block.
 </div>
 
 <h3><a href="#notation" name="notation">></a>Notation</h3>
@@ -94,6 +97,11 @@
             <code>\ell</code> doesn't exist, so
             <a href="http://en.wikipedia.org/wiki/Lp_space#The_p-norm_in_finite_dimensions">little lp spaces</a> do not
             look as sweet.
+        </li>
+        <li>
+            <code>\nabla</code> is missing, so for the gradient, I use a capital D.  In a wildly unscientific
+            survey of mathematicians, I got a "I would say so, yeah" and a "geez, maybe" when asked whether D and
+            <code>\nabla</code> were the same thing, so I'm going for it.
         </li>
     </ul>
 </div>
@@ -148,13 +156,13 @@
 <div class="p">
     We deal with this by fitting our
     model using <em>basis functions</em>, <span class="math">\vec{\phi} = (\phi_1, \ldots, \phi_n)</span>, where
-    <span class="math">\phi_j: R^D \to R</span>.  Then we have our model
+    <span class="math">\phi_j: R^D \to R</span>.  Then we have model
 
     <div class="math">
-        y(\vec{x}, \vec{w}) = w_0 + \sum_{j=1}^n w_j \vec{\phi}_j(\vec{x}).
+        y(\vec{x}, \vec{w}) = w_0 + \sum_{j=1}^n w_j \vec{\phi}_j(\vec{x})
     </div>
-
-    Or, by setting <span class="math">\phi_0(x) := 1</span>, we can write
+    which relies non-linearly on <span class="math">x</span>.  We can write this more compactly by setting
+    <span class="math">\phi_0(x) := 1</span>, so
     <div class="math">
         y = \vec{\phi}(\vec{x}) \cdot \vec{w}.
     </div>
@@ -164,19 +172,23 @@
     In practice, some popular choices for basis functions include
 
     <ul ng-controller="basisCtrl">
-        <li><em>Polynomials.</em>
-            For a one dimensional feature set, this just means that instead of writing
-            <span class="math">y = w_0 + w_1 x</span>, we can now write
-            <span class="math">y = w_0 + w_1 x + w_2 x^2 + \cdots + w_n x^n</span>, for some value of
-            <span class="math">n</span> we choose.  For a larger set of features
+        <li><em><a href="http://en.wikipedia.org/wiki/Polynomial">Polynomials</a>.</em>
+            For a one dimensional feature set, this means including basis functions
+            <div class="math">
+                \phi_j(x) = x^j,
+            </div>
+            so that instead of modeling  <span class="math">y = w_0 + w_1 x</span>, we can now write
+            <div class="math">
+                y(\vec{w}, x) = \sum_{j=0}^n w_j  \phi_j(x) = w_0 + w_1 x + w_2 x^2 + \cdots + w_n x^n,
+            </div>
+            for some value of <span class="math">n</span>.  For a larger set of features
             <span class="math">\{x_1, \ldots, x_D\}</span>, you may get the second degree polynomials by defining
             <span class="math">\phi_{j, 0}(\vec{x}) = x_j</span>, and <span class="math">\phi_{j,k}(x) = x_j x_k</span>.
             Now you will have <span class="math">\binom{D}{2}</span> basis functions (pronounced "D choose 2", and, in
             fact, equal to <span class="math">\frac{D(D-1)}{2}</span>), and
             <div class="math">
-                y(w, x) = \sum_{j, k = 0; j \leq k}^n \phi_{j,k}(x) \cdot w,
+                y(w, x) = \sum_{j, k = 0; j \leq k}^n w_{j,k}\phi_{j,k}(x).
             </div>
-            where <span class="math">\phi: R^D \to R^{\frac{D (D-1)}{2}}</span>.
 
             A shortcoming of polynomials is that they tend to get very large very fast away from points you have
             trained on, since <span class="math">\lim_{x\to\pm \infty}|x^j| = \infty</span> for any nonzero value of
@@ -194,7 +206,7 @@
             </div>
         </li>
 
-        <li> <em>Sigmoids.</em>
+        <li> <em><a href="http://en.wikipedia.org/wiki/Sigmoid_function">Sigmoids</a>.</em>
             These are a two parameter family of functions, which may be defined casually as having
             an "S" shape, and carefully as being monotone (either always increasing or decreasing), and converging to a
             finite value in either direction.  Concretely, one such family is
@@ -222,7 +234,7 @@
             </div>
         </li>
 
-        <li> <em>Gaussians.</em>
+        <li> <em><a href="http://en.wikipedia.org/wiki/Gaussian_function">Gaussians</a>.</em>
             We'll later deal with these in a statistical fashion, but right now they're just a friendly shape.  Similarly
             to sigmoids, these functions have a local effect on a model.  They are again defined as a two parameter family,
             with the parameters controlling spread and location.  We write
@@ -251,8 +263,8 @@
 
 <div class="p">
     Up until now, we have been using everyone's favorite method of minimizing functions, namely by eyeballin' them.
-    The focus of this essay is not optimization, but one bad and two good methods for minimizing functions should be
-    mentioned.
+    The focus of this essay is not optimization, but we should mention one bad and two good methods for minimizing
+    functions.
 </div>
 
 

@@ -501,6 +501,7 @@ essay.directive("plotLinePoints", function() {
                         .append("circle")
                         .attr("class", "dot")
                         .attr("opacity", 0.8)
+                        .style("fill", "steelblue")
                         .attr("r", 5)
                         .attr("cx", xMap)
                         .attr("cy", yMap);
