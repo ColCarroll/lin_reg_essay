@@ -24,6 +24,22 @@ essay.controller('ManualRegression',
         $scope.generatingFunction = generatingFunctions["x^2"];
         $scope.w0 = 0;
         $scope.w1 = 1;
+
+        $scope.updateTex = function(){
+            var w0 = $scope.w0 != 0? $scope.w0 : "";
+            var w1 = Math.abs($scope.w1) === 1 ? "" : Math.abs($scope.w1);
+            var sign = "";
+
+            if ($scope.w1 < 0){
+                sign = "-";
+            } else if ($scope.w0 != 0){
+                sign = " + "
+            } else { sign = ""}
+
+            $scope.tex = "y(x, \\vec{w}) = " + w0 + sign + w1 + "x";
+        };
+        $scope.updateTex();
+
         $scope.getCoords = function(){
             $scope.data = d3.range($scope.trainingPoints).map(function(){
                 var x = 2 * Math.random() - 1;
@@ -52,6 +68,7 @@ essay.controller('ManualRegression',
         $scope.updatePlot = function(){
             $scope.getPlotCoords();
             $scope.getError();
+            $scope.updateTex();
         };
 
         $scope.cycleData = function(){
@@ -59,6 +76,7 @@ essay.controller('ManualRegression',
             $scope.generatingFunction = gen_func[1];
             $scope.getCoords();
             $scope.getError();
+            $scope.updateTex();
         };
 
     }
@@ -89,17 +107,17 @@ essay.controller('basisCtrl',
                 return {"x": x, "y": 1.0 / (1 + Math.exp(-$scope.sigmoidSpread * (x - $scope.sigmoidLoc)))}
             });
             $scope.sigmoidTex = "y(x) = \\frac{1}{1 + e^{";
-                if ($scope.sigmoidSpread > 0){
-                    $scope.sigmoidTex += "-" + $scope.sigmoidSpread.toFixed(1)
-                } else {
-                    $scope.sigmoidTex += + (-1 * $scope.sigmoidSpread).toFixed(1);
-                }
-                $scope.sigmoidTex += "x";
-                if ($scope.sigmoidLoc < 0) {
-                    $scope.sigmoidTex += "+" + (-1 * $scope.sigmoidLoc).toFixed(1)
-                } else if ($scope.sigmoidLoc > 0) {
-                    $scope.sigmoidTex += "-" + $scope.sigmoidLoc.toFixed(1)
-                }
+            if ($scope.sigmoidSpread > 0){
+                $scope.sigmoidTex += "-" + $scope.sigmoidSpread.toFixed(1)
+            } else {
+                $scope.sigmoidTex += + (-1 * $scope.sigmoidSpread).toFixed(1);
+            }
+            $scope.sigmoidTex += "x";
+            if ($scope.sigmoidLoc < 0) {
+                $scope.sigmoidTex += "+" + (-1 * $scope.sigmoidLoc).toFixed(1)
+            } else if ($scope.sigmoidLoc > 0) {
+                $scope.sigmoidTex += "-" + $scope.sigmoidLoc.toFixed(1)
+            }
             $scope.sigmoidTex += "}}"
         };
         $scope.updateSigmoid();
@@ -239,7 +257,7 @@ essay.controller('BestModelCtrl',
             }).success(function(data){
                 for(var j in $scope.modelTypes){
                     if ($scope.modelTypes[j].value == data.model_type){
-                       $scope.modelType = $scope.modelTypes[j];
+                        $scope.modelType = $scope.modelTypes[j];
                     }
                 }
                 $scope.regStrength = data.reg_constant;
@@ -250,13 +268,11 @@ essay.controller('BestModelCtrl',
 
         };
 
-        setInterval(function() {
+        $scope.updateModel = function(){
                 $scope.randomFunc();
                 $scope.getBestModel();
-                $scope.$digest();
-            }, 5000
-        );
-
+            };
+        $scope.updateModel();
     }
 );
 
@@ -307,7 +323,7 @@ essay.controller('PointNoiseController',
         $scope.rand = d3.random.normal(0, 1);
 
         $scope.setFuncName = function(baseFunc){
-            $scope.funcName = "y(x) = " + baseFunc + " + \\mathscr{N}(0, " + $scope.noise.toFixed(3) + ")";
+            $scope.funcName = "y(x) = " + baseFunc + " + N(0, " + $scope.noise.toFixed(3) + ")";
         };
         $scope.setFuncName("x^2");
 
@@ -332,9 +348,9 @@ essay.controller('PointNoiseController',
         };
 
         setInterval(function() {
-            $scope.cycle();
-            $scope.$digest();
-        }, 5000
+                $scope.cycle();
+                $scope.$digest();
+            }, 5000
         );
     }
 
@@ -342,14 +358,14 @@ essay.controller('PointNoiseController',
 
 essay.controller('EllPController',
     function EllPCtrl($scope) {
-        var numPoints = 200;
+        var numPoints = 100;
         $scope.x = d3.range(numPoints + 1).map(function(i) {
-           return i/numPoints;
+            return i/numPoints;
         });
         $scope.p = 2.0;
 
         $scope.setFuncName = function(){
-            $scope.funcName = "\\{x \\in \\mathbb{R}^2 : \\|x\\|_{\\ell^{" + $scope.p + "}} = 1\\}"
+            $scope.funcName = "\\{\\vec{x} \\in R^2 : \\|\\vec{x}\\|_{l^{" + $scope.p + "}} = 1\\}"
         };
 
         $scope.getCoords = function () {
@@ -386,18 +402,18 @@ essay.controller('EllPController',
 
 );
 
-
-essay.directive("mathjaxBind", function() {
+essay.directive("katexBind", function() {
         return {
             restrict: "A",
             controller: ["$scope", "$element", "$attrs",
                 function($scope, $element, $attrs) {
-                    $scope.$watch($attrs.mathjaxBind, function(texExpression) {
-                        var texScript = angular.element("<script type='math/tex'>")
-                            .html(texExpression ? texExpression :  "");
+                    $scope.$watch($attrs.katexBind, function(texExpression) {
+                        texExpression = texExpression ? katex.renderToString(texExpression) : "";
                         $element.html("");
-                        $element.append(texScript);
-                        MathJax.Hub.Queue(["Reprocess", MathJax.Hub, $element[0]]);
+                        $element.append(
+                            angular.element("<span class='math'>")
+                                .html(texExpression)
+                        );
                     });
                 }]
         }

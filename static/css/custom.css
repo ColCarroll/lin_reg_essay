@@ -90,12 +90,14 @@ h1 ~ aside {
 }
 
 body > .p, li > .p {
-    text-indent: 20px;
     line-height: 1.5em;
     margin-top: 0;
     margin-bottom: 1em;
 }
 
+.math{
+    text-align: center;
+}
 .figure {
     background-color: #f1f1f1;
     width: 760px;
