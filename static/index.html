@@ -49,32 +49,31 @@
 
 <h2><a href="#introduction" name="introduction">></a>Introduction</h2>
 <div class="p">
-    There are two common tasks in machine learning: these are <em>regression</em> tasks and <em>classification</em>
+    There are two common tasks in machine learning: <em>regression</em> tasks and <em>classification</em>
     tasks. Examples of classification tasks include predicting the species of an iris based on
-    <a href="http://en.wikipedia.org/wiki/Iris_flower_data_set">petal and sepal measurements</a>, predicting who will
+    <a href="http://en.wikipedia.org/wiki/Iris_flower_data_set">petal and sepal measurements</a>, or predicting who will
     win a <a href="http://fivethirtyeight.com/interactives/senate-forecast/">Senate race</a> or
-    <a href="http://www.lasvegas.com">football game</a>, or predicting who will click on a banner advertisement.
-    Broadly each takes some set of inputs and output one of a discrete set of labels (typically, the output will
-    actually be a probability of some data point having some label).  A regression task will actually predict a real
-    valued output.  Perhaps this would be used to estimate stock prices, forecast inventory, or predict the score of a
+    <a href="http://www.lasvegas.com"> football game</a>.
+    Broadly each takes some set of inputs and then outputs one of a discrete set of labels (species of iris, Senatorial candidate, or football team).  Typically, the output will
+    actually be a probability of some data point having some label.  A regression task will predict a <em>real
+    valued</em> output.  Perhaps this would be used to estimate stock prices, forecast inventory, or predict the score of a
     a football game.
 </div>
 
 <div class="p">
-    Linear regression can get a bad rap for sounding boring.  Much like linear algebra, where much emphasis is put on
-    solving <span class="math">A \vec{x} = \vec{b}</span>, studying linear regression - how to build a model, how to
+    Linear regression can get a bad rap for sounding boring.  Much like in linear algebra, where solving <span class="math">A \vec{x} = \vec{b}</span> turns out to be surprisingly useful, studying linear regression - how to build a model, how to
     tune a model, and what sorts of performance to expect - can yield impressive results in practice.  In particular,
     one finds that many methods with sexier names are built on top of linear regression.
     <a href="http://en.wikipedia.org/wiki/Logistic_regression">Logistic regression</a>, a popular choice in
     classification tasks, is built on top of linear regression, and
-    <a href="http://en.wikipedia.org/wiki/Artificial_neural_network">neural nets</a>, which seem to be a buzzword these
-    days, use linear regression as its building block.
+    <a href="http://en.wikipedia.org/wiki/Artificial_neural_network">neural nets</a>, which seem to be trendy these
+    days, use linear regression as their building blocks.
 </div>
 
 <h3><a href="#notation" name="notation">></a>Notation</h3>
 <div class="p">
     The symbols on this page are displayed using <a href="http://khan.github.io/KaTeX/">KaTeX</a>, rather than
-    <a href="http://www.mathjax.org/">MathJax</a>, both as an experiment, and to improve performance.  Since KaTeX is
+    <a href="http://www.mathjax.org/">MathJax</a>, both as an experiment in KaTeX and to improve performance.  Since KaTeX is
     still in development, a few shortcuts had to be taken.  Below is a list of things I did in MathJax that, as far
     as I know, still cannot be done in KaTeX (though, to emphasize, I think KaTeX is a terrific project, and chose to
     use it for the performance increase).
@@ -110,17 +109,17 @@
 <div class="p">
     At its most basic, a linear model is one of the form
     <div class="math">
-        y(\vec{x}, \vec{w}) = w_0 + x_1 w_1 + \cdots + w_Dx_D,
+        y(\vec{x}, \vec{w}) = w_0 + x_1 w_1 + \cdots + w_Nx_N,
     </div>
-    where <span class="math">\vec{x} = (x_1, \ldots, x_D) \in R^D</span> are called <em>features</em>, and
-    <span class="math">\vec{w} = (w_0, \ldots, w_D) \in R^D</span> are called <em>weights</em>.  One is typically
+    where <span class="math">\vec{x} = (x_1, \ldots, x_N) \in R^N</span> are called <em>features</em>, and
+    <span class="math">\vec{w} = (w_0, \ldots, w_N) \in R^{N+1}</span> are called <em>weights</em>.  One is typically
     given some training data
     <div class="math">
-        D = \{(y_1, \vec{x}_1),\ldots,(y_D, \vec{x}_D)\},
+        D = \{(y_1, \vec{x}_1),\ldots,(y_d, \vec{x}_d)\},
     </div>
     and asked to find a model which minimizes
     <div class="math">
-        loss(\vec{w}) = \sum_{j=1}^D (y_j - y(\vec{x}_j, \vec{w}))^2.
+        loss(\vec{w}) = \sum_{j=1}^d (y_j - y(\vec{x}_j, \vec{w}))^2.
     </div>
     Below, you may click on the plot to generate a random data set, and then manually choose values
     <span class="math">w_0</span>, <span class="math">w_1</span> to
@@ -147,29 +146,29 @@
 <h2><a href="#advancedSetup" name="advancedSetup">></a>Advanced Setup</h2>
 
 <div class="p">
-    That was likely highly frustrating, since many (most?) data is drawn from some function which relies non-linearly on
-    its inputs.  One might consider rainfall in a location as a function of the day of year, which would probably have
+    That was likely highly frustrating, since many (most?) of these data sets (like real data sets) come from functions that rely non-linearly on
+    their inputs.  One might consider rainfall in a location as a function of the day of year, which would probably have
     some sort of periodic relationship, or weight of a person given their height, which we might expect has a polynomial
-    relationship (since weight is a measure of volume, and height one of length).
+    relationship (since weight is roughly proportional to volume, and height is a measure of length).
 </div>
 
 <div class="p">
     We deal with this by fitting our
     model using <em>basis functions</em>, <span class="math">\vec{\phi} = (\phi_1, \ldots, \phi_n)</span>, where
-    <span class="math">\phi_j: R^D \to R</span>.  Then we have model
+    <span class="math">\phi_j: R^N \to R</span>.  Then we have model
 
     <div class="math">
         y(\vec{x}, \vec{w}) = w_0 + \sum_{j=1}^n w_j \vec{\phi}_j(\vec{x})
     </div>
-    which relies non-linearly on <span class="math">x</span>.  We can write this more compactly by setting
-    <span class="math">\phi_0(x) := 1</span>, so
+    which relies non-linearly on <span class="math">\vec{x}</span>.  We can write this more compactly by setting
+    <span class="math">\phi_0(\vec{x}) := 1</span>, so
     <div class="math">
         y = \vec{\phi}(\vec{x}) \cdot \vec{w}.
     </div>
 </div>
 
 <div class="p">
-    In practice, some popular choices for basis functions include
+    In practice, some popular choices for basis functions include:
 
     <ul ng-controller="basisCtrl">
         <li><em><a href="http://en.wikipedia.org/wiki/Polynomial">Polynomials</a>.</em>
@@ -181,17 +180,17 @@
             <div class="math">
                 y(\vec{w}, x) = \sum_{j=0}^n w_j  \phi_j(x) = w_0 + w_1 x + w_2 x^2 + \cdots + w_n x^n,
             </div>
-            for some value of <span class="math">n</span>.  For a larger set of features
-            <span class="math">\{x_1, \ldots, x_D\}</span>, you may get the second degree polynomials by defining
+            for some value of <span class="math">n</span>.  As an example when <span class="math">\vec{x}</span> is of higher dimension,
+            <span class="math">\vec{x} = (x_1, \ldots, x_N)</span>, you may get the second degree polynomials by defining
             <span class="math">\phi_{j, 0}(\vec{x}) = x_j</span>, and <span class="math">\phi_{j,k}(x) = x_j x_k</span>.
-            Now you will have <span class="math">\binom{D}{2}</span> basis functions (pronounced "D choose 2", and, in
-            fact, equal to <span class="math">\frac{D(D-1)}{2}</span>), and
+            Now you will have <span class="math">\binom{N}{2}</span> basis functions (pronounced "N choose 2", and, in
+            fact, equal to <span class="math">\frac{N(N-1)}{2}</span>), and
             <div class="math">
-                y(w, x) = \sum_{j, k = 0; j \leq k}^n w_{j,k}\phi_{j,k}(x).
+                y(\vec{w}, \vec{x}) = \sum_{j, k = 0; j \leq k}^N w_{j,k}\phi_{j,k}(\vec{x}).
             </div>
 
             A shortcoming of polynomials is that they tend to get very large very fast away from points you have
-            trained on, since <span class="math">\lim_{x\to\pm \infty}|x^j| = \infty</span> for any nonzero value of
+            trained on, since <span class="math">\lim_{x\to\pm \infty}|x^j| = \infty</span> for any positive value of
             <span class="math">j</span>. This can lead to ridiculous predictions.
 
             <div class="figure">
@@ -207,17 +206,15 @@
         </li>
 
         <li> <em><a href="http://en.wikipedia.org/wiki/Sigmoid_function">Sigmoids</a>.</em>
-            These are a two parameter family of functions, which may be defined casually as having
+            These may be defined casually as having
             an "S" shape, and carefully as being monotone (either always increasing or decreasing), and converging to a
             finite value in either direction.  Concretely, one such family is
             <div class="math">
                 \sigma_{m,b}(x) = \frac{1}{1 + e^{-m(x + b)}},
             </div>
             where <span class="math">m</span> controls the "spread" of the sigmoid, and <span class="math">b</span> the
-            "location" (<span class="math">\tanh(m(x+b))</span> is another popular choice for
-            <span class="math">\sigma_{m,b}</span>).  One might think of a sigmoid feature as effecting some change in
-            an <span class="math">m</span> neighborhood of <span class="math">b</span>.  You might generate many of
-            these by selecting some grid of locations and spreads in your feature space.
+            "location".  Another popular choice for<span class="math">\sigma_{m,b}</span> is <span class="math">\tanh(m(x+b))</span>.  One might think of a sigmoid as modeling some change that happens around the point <span class="math">b</span> with some amount of abruptness controlled by <span class="math">m</span>.  You might generate many of
+            these sigmoids by selecting some grid of locations and spreads in your feature space.
             <div class="figure">
                 <plot-line line-data="sigmoidData"></plot-line>
                 <div>
@@ -236,7 +233,7 @@
 
         <li> <em><a href="http://en.wikipedia.org/wiki/Gaussian_function">Gaussians</a>.</em>
             We'll later deal with these in a statistical fashion, but right now they're just a friendly shape.  Similarly
-            to sigmoids, these functions have a local effect on a model.  They are again defined as a two parameter family,
+            to sigmoids, these functions have a local effect on a model.  They are defined as a two parameter family,
             with the parameters controlling spread and location.  We write
             <div class="math">
                 \phi_{m,b}(x) = e^{\frac{(x - b)^2}{2m^2}}.
@@ -271,7 +268,7 @@
 <div class="p">
     First, recall that we are given
     <div class="math">
-        D = \{(y_1, \vec{x}_1),\ldots,(y_D, \vec{x}_D)\},
+        D = \{(y_1, \vec{x}_1),\ldots,(y_d, \vec{x}_d)\},
     </div>
     have decided on some set of basis functions
     <div class="math">
@@ -283,7 +280,7 @@
     </div>
     which minimizes the loss function
     <div class="math">
-        loss(\vec{w}) = \sum_{j=1}^D (y_j - \vec{\phi}(\vec{x}_j) \cdot \vec{w}))^2.
+        loss(\vec{w}) = \sum_{j=1}^d (y_j - \vec{\phi}(\vec{x}_j) \cdot \vec{w}))^2.
     </div>
     We outline three methods for finding the minimum.
 </div>
@@ -294,10 +291,12 @@
         This is a reasonable first try, but ultimately a Bad Idea.  Given a function <code>loss</code> that evaluates
         the loss of a weight, you might write a loop like
         <pre><code>
-            best_w, min_loss = -10, loss(-10)
+            best_w = -10
+            min_loss = loss(-10)
             for w in range(-10, 10, 0.1):
                 if loss(w) < min_loss:
-                    best_w, min_loss = w, loss(w)
+                    best_w = w
+                    min_loss = loss(w)
             print(best_w)
         </code></pre>
         Staring at this loop, a few questions might strike you:
@@ -306,10 +305,10 @@
                 Why did we iterate from -10 to 10?  Why not -1 to 1?  Why not -1,000 to 1,000?
             </li>
             <li>
-                What if I need more accuracy?
+                What if we need more accuracy?
             </li>
             <li>
-                What if <span class="math">w</span> is high dimensional?  Instead of 200 points to check, we'll have
+                What if <span class="math">w</span> is n dimensional?  Instead of 200 points to check, we'll have
                 <span class="math">200^{n + 1}</span>, which is a big number.
             </li>
         </ul>
@@ -330,13 +329,13 @@
         <div class="p">
             The gradient
             <div class="math">
-                D_{\vec{w}}loss(\vec{w}) = 2 \sum_{j = 1}^D(\vec{\phi}(\vec{x}_j)\cdot \vec{w} - y_j) \vec{\phi}(\vec{x}_j)
+                D_{\vec{w}}loss(\vec{w}) = 2 \sum_{j = 1}^d(\vec{\phi}(\vec{x}_j)\cdot \vec{w} - y_j) \vec{\phi}(\vec{x}_j)
             </div>
             can be rewritten using matrix notation by defining <span class="math">\Phi</span> as a
-            <span class="math">D \times (n + 1)</span> matrix whose <span class="math">j</span>th row and
+            <span class="math">d \times (n + 1)</span> matrix whose <span class="math">j</span>th row and
             <span class="math">k</span>th column is <span class="math">\phi_k(x^j)</span>.  Then writing
             <div class="math">
-                \vec{y} = ( y_1, y_2, \ldots, y_D)^T,
+                \vec{y} = ( y_1, y_2, \ldots, y_d)^T,
             </div>
             we are solving
             <div class="math">
@@ -350,8 +349,8 @@
 
         <div class="p">
 
-            Note that <span class="math">\Phi</span> is a <span class="math">D \times (n + 1)</span> matrix, where
-            <span class="math">D</span> is a big number (in particular, <span class="math">D > n + 1</span>). However,
+            Note that <span class="math">\Phi</span> is a <span class="math">d \times (n + 1)</span> matrix, where
+            <span class="math">d</span> is a big number (in particular, <span class="math">d > n + 1</span>). However,
             <span class="math">\Phi^T\Phi</span> is an <span class="math">(n + 1) \times (n+1)</span>, (probably)
             invertible matrix.  So we can solve for <span class="math">\vec{w}</span> by noting that, if
             <div class="math">
@@ -367,14 +366,14 @@
             </div>
 
             This solution will minimize the loss function, and be an exact answer.  Back of the
-            envelope calculations say that as <span class="math">D</span> gets large (say, 1,000,000), then computing
-            the pseudoinverse above will take prohibitively long.  This means that while important to know, this method
+            envelope calculations say that as <span class="math">d</span> gets large (say, 1,000,000), then computing
+            the pseudoinverse above will take prohibitively long.  Therefore, while important to know, this method
             of minimizing a linear equation is typically not preferred in practice.
         </div>
     <li>
         <em>Back to calculus</em>
         <div class="p">
-            Going back to calculus, we end up with the most common solution to minimizing a function, using a process
+            Going back to calculus, we end up with the most common (practical) method for minimizing a function, which is a process
             called <em>gradient descent</em>.  We calculated the gradient earlier, and might remember from calculus that
             <div class="math">
                 \vec{x} \cdot \vec{y} = |\vec{x}||\vec{y}| \cos{\theta},
@@ -382,17 +381,19 @@
             where <span class="math">\vec{x}</span> and <span class="math">\vec{y}</span> are vectors, and
             <span class="math">\theta</span> the angle between them. The slope of a
             function <span class="math">f</span> with gradient <span class="math">Df</span> in the direction
-            <span class="math">\vec{u}</span> is <span class="math">f \cdot \vec{u}</span>. Since cosine has a minimum
+            <span class="math">\vec{u}</span> is <span class="math">Df \cdot \vec{u}</span>. Since cosine has a minimum
             of -1 when two vectors point in opposite directions, we choose to travel in the direction
             <span class="math">\vec{u} = -Df</span> in order to "decrease" <span class="math">f</span> as quickly
             as possible. This process is called gradient descent, and may be written in pseudocode as
         </div>
             <pre><code>
                 step_size = 0.001
-                x_new, x_old = 0, 100
+                x_new = 0
+                x_old = 100
                 while abs(x_new - x_old) > 0.01:
                     x_old = x_new
                     x_new = x_new - step_size * gradient(f)(x_new)
+                print(x_new)
             </code></pre>
         <div class="p">
             Anyways, we'll assume you (or your computer) know how to minimize functions from here on out.
@@ -402,14 +403,13 @@
 
 <h2><a href="#modelBuilding" name="modelBuilding">></a>Model Building</h2>
 <div class="p">
-    Armed with our new found knowledge, a great way of working seems to be to take our data set, create a ton of
-    basis functions, and fit a model with very low error.  Unfortunately, we then move from our training data to a
-    set of (hopefully) test data or (probably) real data, and find we do spectacularly poorly. This phenomena is called
+    Armed with our newfound knowledge, a great way of working seems to be to take our data set, create a ton of
+    basis functions, and fit a model with very low error.  Unfortunately, as soon as we move from our training data to some real data, we may find that our model performs spectacularly poorly. This phenomena is called
     <em>overfitting</em>.
 </div>
 
 <div class="p">
-    We provide a sandbox below to fit a linear model to some sample data.  You may choose how many basis functions to
+    We provide a sandbox below to fit a linear model to some sample data, this time with nonlinear basis functions.  You may choose how many basis functions to
     use, and there is a solver running in the background which will find the best fit.  We additionally use 100 points
     sampled from the same function as the training data to compute your mean error.  You can see graphically below when
     the model looks overfit, but in the real world, <span class="math">x</span> will be a vector of dimension greater
@@ -455,22 +455,22 @@
     whole point of this essay.  We design a smarter loss function which penalizes a model for being too complicated,
     and (mostly) automatically(-ish) picks a good model for us.  In particular, we will minimize either
     <div class="math">
-        \sum_{j=1}^D (y_j - \vec{w} \cdot \vec{\phi}(\vec{x}_j))^2 + \alpha \|\vec{w}\|_2^2
+        loss(\vec{w}) = \sum_{j=1}^d (y_j - \vec{w} \cdot \vec{\phi}(\vec{x}_j))^2 + \alpha \|\vec{w}\|_2^2
     </div>
     or
     <div class="math">
-        \sum_{j=1}^D (y_j - \vec{w} \cdot \vec{\phi}(\vec{x}_j))^2 + \alpha \|\vec{w}\|_1,
+        loss(\vec{w}) = \sum_{j=1}^d (y_j - \vec{w} \cdot \vec{\phi}(\vec{x}_j))^2 + \alpha \|\vec{w}\|_1,
     </div>
 
     where
     <div class=math>
         \|\vec{w}\|_p := \left(\sum w_j^p \right)^{\frac{1}{p}}
     </div>
-    is called the <span class="math">l^p</span>-norm of a vector <span class="math">\vec{w}</span>, and
+    is called the <span class="math">l_p</span>-norm of a vector <span class="math">\vec{w}</span>, and
     <span class="math">\alpha</span> is called the <em>regularization strength</em>.  Using the first loss
     function to train a model is called <em>Ridge regression</em>, and the second is called <em>Lasso</em> regression.
-    Note that the <span class="math">l^1</span>-norm is just the sum of the absolute values, and the
-    <span class="math">l^2</span>-norm squared is the sum of squares.
+    Note that the <span class="math">l_1</span>-norm is just the sum of the absolute values, and the
+    <span class="math">l_2</span>-norm squared is the sum of squares.
 </div>
 
 <div class="p">
@@ -527,7 +527,7 @@
     </code></pre>
 <div class="p">
     Choosing the set of parameters with the least testing errors gives us our desired model.  We let you choose the
-    set of basis vectors we consider when fitting a model [1], and provide a final sandbox that runs (essentially) the
+    set of basis vectors we consider when fitting a model, and provide a final sandbox that runs (essentially) the
     code above to fit itself.  Add bunches of basis functions, fit a model, and click on the diagram to generate a
     new training set.
 </div>
@@ -614,7 +614,7 @@
 <div class="p">
     Going further, if we are given a data set
     <div class="math">
-        D = \{(y_1, \vec{x}_1),\ldots,(y_D, \vec{x}_D)\},
+        D = \{(y_1, \vec{x}_1),\ldots,(y_d, \vec{x}_d)\},
     </div>
     the probability of seeing this data is the product of seeing each of the individual data points (assuming they are
     drawn independently).  A nice property of the exponential is that this product turns into a sum, and we get
@@ -640,7 +640,7 @@
     example, <span class="math">x</span> is the sum of the squared difference (divided by the standard deviation), so
     the maximum likelihood estimator for <span class="math">w</span> is the weight vector which minimizes
     <div class="math">
-        \sum_{j=1}^D(y_j - \vec{w} \cdot \vec{\phi}(\vec{x}_j))^2.
+        \sum_{j=1}^d(y_j - \vec{w} \cdot \vec{\phi}(\vec{x}_j))^2.
     </div>
 </div>
 
