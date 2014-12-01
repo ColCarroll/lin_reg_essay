@@ -1,0 +1,184 @@
+<h2>> A Bayesian Approach</h2>
+<div class="p">
+    Previously, we accepted that we would try to minimize the squared loss, because it seemed reasonable.  Later, we
+    added various penalties because <em>they</em> seemed reasonable.  It turns out we can make explicit certain
+    assumptions about our data, and in fact derive that we then <em>must</em> use these loss functions.
+</div>
+
+
+<div class="p">
+    A strategy that is startlingly effective in mathematics is to imagine we know the solution, and see what properties
+    the solution must satisfy.  In this case, we'll find it useful to imagine we knew how our data was generated.  A
+    reasonable assumption is that our basis functions can capture some, but not all, of the variance in a process, with
+    the error being distributed normally. Recall that the probability density function for the normal distribution is
+    given by
+    <div class="math">
+        N(x | \mu, \sigma) = \frac{1}{\sigma \sqrt{2 \pi}}e^{-\frac{(x - \mu)^2}{2 \sigma^2}},
+    </div>
+    where <span class="math">\mu</span> is the mean value, <span class="math">\sigma</span> is the standard deviation,
+    and <span class="math">N(x | \mu, \sigma)</span> is the likelihood of the value <span class="math">x</span>.
+    We'll write just <span class="math">N(\mu, \sigma)</span> to represent a variable drawn from this distribution.
+    Then our equation for <span class="math">y(x)</span> becomes
+    <div class="math">
+        y(\vec{x}, \vec{w}) = \vec{w} \cdot \vec{\phi}(\vec{x}) + N(0, \sigma^2),
+    </div>
+    where the noise represents variables we haven't accounted for, or perhaps measurement error.
+</div>
+
+<div class="p">
+    Below, we give an example of what this assumption means graphically: we draw some number of data points which are
+    located <em>exactly</em> on deterministic function, then we add some normally distributed random number to each
+    data point.  In our previous demonstrations, we drew points from the same distributions, with
+    <span class="math">\sigma = 0.05</span>.
+</div>
+<div ng-controller="PointNoiseController" class="figure">
+    <plot-noise-points point-data="data"></plot-noise-points>
+    <br>
+    {{trainingPoints}} points drawn from <span katex-bind="funcName"></span>.
+</div>
+
+<div class="p">
+    Asking why we think our error is normally distributed is a great question.  Two answers are (1) that the normal
+    distribution shows up in
+    <a href="http://en.wikipedia.org/wiki/Central_limit_theorem">a surprising number of places</a> ,
+    and (2) the resulting problem is analytically tractable,
+    meaning it will be instructive if you want to strike out on your own with a more exotic distribution.
+</div>
+
+<div class="p">
+    In any case, having written down the probability density function for our data, we may ask the <em>likelihood</em>
+    of seeing a data point, given our features <span class="math">\vec{x}</span> and weights
+    <span class="math">\vec{w}</span>. Namely
+    <div class="math">
+        p(y | \vec{x}, \vec{w}) = C\exp{\left(-\frac{(y - \vec{w} \cdot \vec{\phi}(\vec{x}))^2}{2 \sigma^2}\right)}.
+    </div>
+    Since we'll be maximizing functions with respect to <span class="math">\vec{w}</span>, we'll get rid of
+    multiplicative factors by grouping them into this constant <span class="math">C</span> whenever possible.
+</div>
+
+<div class="p">
+    Going further, if we are given a data set
+    <div class="math">
+        D = \{(y_1, \vec{x}_1),\ldots,(y_d, \vec{x}_d)\},
+    </div>
+    the probability of seeing this data is the product of seeing each of the individual data points (assuming they are
+    drawn independently).  A nice property of the exponential is that this product turns into a sum, and we get
+    <div class="math">
+        p(D | \vec{w}) = C \exp{\left(-\sum_{j=1}^D\frac{(y_j - \vec{w} \cdot \vec{\phi}(\vec{x}_j))^2}{2 \sigma^2}\right)}.
+    </div>
+    Notice two things:
+</div>
+<ol>
+    <li>
+        This number is extraordinarly small (though that doesn't really matter), and
+    </li>
+    <li>
+        We may choose a <span class="math">\vec{w}</span> to maximize this probability.  This will be called the
+        <em>maximum likelihood estimator</em> for <span class="math">\vec{w}</span>, and (spoiler!) will be equivalent
+        to minimizing the mean squared error.
+    </li>
+</ol>
+
+<div class="p">
+    In fact, this last statement can be seen through inspection.  If we would like to maximize
+    <span class="math">e^{-x}</span>, we would make <span class="math">x</span> as small as possible.  In our above
+    example, <span class="math">x</span> is the sum of the squared difference (divided by the standard deviation), so
+    the maximum likelihood estimator for <span class="math">w</span> is the weight vector which minimizes
+    <div class="math">
+        \sum_{j=1}^d(y_j - \vec{w} \cdot \vec{\phi}(\vec{x}_j))^2.
+    </div>
+</div>
+
+<div class="p">
+    This might be considered a <em>frequentist</em> approach to this regression problem: we were given some data, and
+    chose our parameters to maximize the probability of seeing that data given the weights.  What if instead, we made
+    some assumptions about our weights, and maximized instead the probability of seeing our weights given our data.
+    Those with enough schooling will hear that and get nervous that Bayes' Theorem is about to show up.  Indeed, the
+    easiest way to remember Bayes' Theorem is to recall that it has something to do with the symmetry of
+    <span class="math">p(A, B)</span>, where <span class="math">A</span> and <span class="math">B</span> are some
+    events.  In particular, we just need to know that
+</div>
+<ol>
+    <li>
+        <span class="math">p(A,B) = p(B,A)</span>, and
+    </li>
+    <li>
+        <span class="math">p(A,B) = p(A | B) p(B)</span>.
+    </li>
+</ol>
+<div class="p">
+    Then we get that <span class="math">p(A | B) p(B) = p(A,B) = p(B,A) = p(B | A) p(A)</span>.  Dividing through gives
+    the typical expression of Bayes' Theorem
+    <div class="math">
+        p(A|B) = \frac{p(B | A) p(A)}{p(B)}.
+    </div>
+</div>
+
+<div class="p">
+    Back to the problem at hand, we already calculated <span class="math">p(D | \vec{w})</span>, so we might like to
+    write down some prior for our weights, <span class="math">p(\vec{w})</span>.  In particular, recalling our strategy
+    outlined earlier of making just a boatload of basis functions, we might imagine that no weight ought to be
+    particularly large.  More specifically, that it is <em>unlikely</em> that a large weight occurs.  Then perhaps we
+    have a normal prior on our weights, with mean 0 and some spread controlled by <span class="math">\tau</span>:
+    <div class="math">
+        p(w_j|\tau) = N(0, \tau).
+    </div>
+    If we in fact expect the weights to be mostly 0, then the Laplace prior with mean 0 and spread
+    <span class="math">\tau</span> might be more reasonable, where the probability density function for the Laplace
+    distribution is given by
+    <div class="math">
+        \text{Laplace}(x | \mu, \sigma) = \frac{1}{2 \sigma}e^{-\frac{|x - \mu|}{\sigma}}.
+    </div>
+    Specifically, we make the assumption that
+    <div class="math">
+        p(w_j|\tau) = \text{Laplace}(0, \tau).
+    </div>
+</div>
+
+<div class="p">
+    Going back to Bayes' theorem,
+    <div class="math">
+        p(\vec{w} | D, \tau) = C p(D | \vec{w}, \tau) p(\vec{w}| \tau).
+    </div>
+    We had great success with the minimizing negative log likelihood earlier, so trying that again turns this
+    multiplication into addition, and gives
+    <div class="math">
+        -\log{\left(p(\vec{w} | D, \tau)\right)} = C - \log{\left(p(D | \vec{w}, \tau)\right)} - \log{\left(p(\vec{w}, \tau)\right)},
+    </div>
+    which by our earlier calculations means
+
+    <div class="math">
+        -\log{\left(p(\vec{w} | D, \tau)\right)} = C + \frac{\sum (y_j - \vec{w} \cdot \vec{x}_j)^2}{2 \sigma^2} - \log{\left(p(\vec{w}, \tau)\right)}
+    </div>
+
+</div>
+<div class="p">
+    Dropping the constant <span class="math">C</span> (since changing <span class="math">w</span> doesn't change
+    <span class="math">C</span>), we may just calculate the negative log of the prior on the weights to find an equation
+    to minimize that will give us optimal weights.  In particular,
+    <div class="math">
+        -\log{N(0, \sigma)} = C + \frac{\|\vec{w}\|^2}{2 \sigma^2},
+    </div>
+    so the weights that best reflect the belief that
+    <div class="math">
+        y(\vec{x}, \vec{w}) = \vec{w} \cdot \vec{\phi}(\vec{x}) + N(0, \sigma^2)
+    </div>
+    in light of the data <span class="math">D</span> are those which minimize
+    <div class="math">
+        \sum_{j=1}^D (y_j - \vec{w} \cdot \vec{x}_j)^2 + \alpha \|\vec{w}\|_2^2,
+    </div>
+    where <span class="math">\alpha</span> is some constant. This is exactly <em>Ridge regression</em>, as defined
+    earlier.  Notice if we were a little more careful, we could write down <span class="math">\alpha</span> as a
+    function of <span class="math">\sigma</span> and <span class="math">\tau</span>, but in practice it is difficult
+    to think of a great use for recovering those numbers.
+</div>
+
+<div class="p">
+    Similarly, taking the negative log of the Laplace prior on the weights will leave us with Lasso regression.  Again,
+    we have the extra intuition that maximizing the probability of our weights given the data (and the assumption that
+    the weights are Laplace distributed) is equivalent to minimizing
+    <div class="math">
+        \sum_{j=1}^D (y_j - \vec{w} \cdot \vec{x}_j)^2 + \alpha \|\vec{w}\|_1.
+    </div>
+</div>
+<script src="../js/live_render_katex.js"></script>

@@ -1,0 +1,151 @@
+<h2>> Fitting the Model</h2>
+
+<div class="p">
+    Up until now, we have been using everyone's favorite method of minimizing functions, namely by eyeballin' them.
+    The focus of this essay is not optimization, but we should mention one bad and two good methods for minimizing
+    functions.
+</div>
+
+
+<div class="p">
+    First, recall that we are given
+    <div class="math">
+        D = \{(y_1, \vec{x}_1),\ldots,(y_d, \vec{x}_d)\},
+    </div>
+    have decided on some set of basis functions
+    <div class="math">
+        \vec{\phi} = (\phi_0, \ldots, \phi_n),
+    </div>
+    and seek to find a vector
+    <div class="math">
+        \vec{w} = (w_0, \ldots, w_n)
+    </div>
+    which minimizes the loss function
+    <div class="math">
+        loss(\vec{w}) = \sum_{j=1}^d (y_j - \vec{\phi}(\vec{x}_j) \cdot \vec{w}))^2.
+    </div>
+    We outline three methods for finding the minimum.
+</div>
+
+<ol>
+    <li>
+        <em>Guessing</em>
+        This is a reasonable first try, but ultimately a Bad Idea.  Given a function <code>loss</code> that evaluates
+        the loss of a weight, you might write a loop like
+        <pre><code>
+            best_w = -10
+            min_loss = loss(-10)
+            for w in range(-10, 10, 0.1):
+                if loss(w) < min_loss:
+                    best_w = w
+                    min_loss = loss(w)
+            print(best_w)
+        </code></pre>
+        Staring at this loop, a few questions might strike you:
+        <ul>
+            <li>
+                Why did we iterate from -10 to 10?  Why not -1 to 1?  Why not -1,000 to 1,000?
+            </li>
+            <li>
+                What if we need more accuracy?
+            </li>
+            <li>
+                What if <span class="math">w</span> is n dimensional?  Instead of 200 points to check, we'll have
+                <span class="math">200^{n + 1}</span>, which is a big number.
+            </li>
+        </ul>
+        <div class="p">
+            There are good answers to these questions, and if you think about them long enough, you might accidentally
+            invent calculus. Rather than belabor the point, let's move on to a calculus based approach.
+        </div>
+    </li>
+    <li>
+        <em>Calculus and linear algebra</em>
+        <div class="p">We're going to swing from an approach where we hope to be wildly lucky - and then will be only
+            approximately correct - to one where we're guaranteed to hit the exact answer square on the head.  One
+            recalls that a big theme in calculus is finding extreme points. So we can take a derivative of
+            <span class="math">loss(\vec{w})</span> with respect to <span class="math">\vec{w}</span>, set it equal to
+            zero, and solve for <span class="math">\vec{w}</span>.
+        </div>
+
+        <div class="p">
+            The gradient
+            <div class="math">
+                D_{\vec{w}}loss(\vec{w}) = 2 \sum_{j = 1}^d(\vec{\phi}(\vec{x}_j)\cdot \vec{w} - y_j) \vec{\phi}(\vec{x}_j)
+            </div>
+            can be rewritten using matrix notation by defining <span class="math">\Phi</span> as a
+            <span class="math">d \times (n + 1)</span> matrix whose <span class="math">j</span>th row and
+            <span class="math">k</span>th column is <span class="math">\phi_k(x^j)</span>.  Then writing
+            <div class="math">
+                \vec{y} = ( y_1, y_2, \ldots, y_d)^T,
+            </div>
+            we are solving
+            <div class="math">
+                D_{\vec{w}} loss(\vec{w}) = \Phi^T(\Phi \vec{w} - \vec{y}) = \vec{0},
+            </div>
+            or
+            <div class="math">
+                \Phi^T\Phi w = \Phi^T y.
+            </div>
+        </div>
+
+        <div class="p">
+
+            Note that <span class="math">\Phi</span> is a <span class="math">d \times (n + 1)</span> matrix, where
+            <span class="math">d</span> is a big number (in particular, <span class="math">d > n + 1</span>). However,
+            <span class="math">\Phi^T\Phi</span> is an <span class="math">(n + 1) \times (n+1)</span>, (probably)
+            invertible matrix.  So we can solve for <span class="math">\vec{w}</span> by noting that, if
+            <div class="math">
+                \Phi^T\Phi \vec{w} = \Phi^T \vec{y},
+            </div>
+            then
+            <div class="math">
+                (\Phi^T \Phi)^{-1} (\Phi^T \Phi) \vec{w} = (\Phi^T \Phi)^{-1} \Phi^T \vec{y},
+            </div>
+            and simplifying gives
+            <div class="math">
+                \vec{w} = (\Phi^T \Phi)^{-1} \Phi^T \vec{y}.
+            </div>
+
+            This solution will minimize the loss function, and be an exact answer.  One is obliged to report also that
+            <span class="math">(\Phi^T \Phi)^{-1} \Phi^T</span> is called the
+            <em><a href="http://en.wikipedia.org/wiki/Moore%E2%80%93Penrose_pseudoinverse">pseudoinverse</a></em> of
+            <span class="math">\Phi</span>.  Back of the envelope calculations say that as <span class="math">D</span>
+            gets large (say, 1,000,000), then computing the pseudoinverse above will take prohibitively long.  This
+            means that while important to know, this method of minimizing a linear equation is typically not preferred
+            in practice.
+        </div>
+    <li>
+        <em>Back to calculus</em>
+        <div class="p">
+            Going back to calculus, we end up with the most common (practical) method for minimizing a function, which is a process
+            called <em><a href="http://en.wikipedia.org/wiki/Gradient_descent">gradient descent</a></em>.  We calculated
+            the gradient earlier, and might remember from calculus that
+            <div class="math">
+                \vec{x} \cdot \vec{y} = |\vec{x}||\vec{y}| \cos{\theta},
+            </div>
+            where <span class="math">\vec{x}</span> and <span class="math">\vec{y}</span> are vectors, and
+            <span class="math">\theta</span> the angle between them (compare this to the
+            <em><a href="http://en.wikipedia.org/wiki/Cauchy%E2%80%93Schwarz_inequality">Cauchy-Schwarz inequality</a></em>).
+            The slope of a function <span class="math">f</span> with gradient <span class="math">Df</span> in the
+            direction <span class="math">\vec{u}</span> is <span class="math">f \cdot \vec{u}</span>. Since cosine has a
+            minimum of -1 when two vectors point in opposite directions, we choose to travel in the direction
+            <span class="math">\vec{u} = -Df</span> in order to "decrease" <span class="math">f</span> as quickly
+            as possible. This process is called gradient descent, and may be written in pseudocode as
+        </div>
+            <pre><code>
+                step_size = 0.001
+                x_new = 0
+                x_old = 100
+                while abs(x_new - x_old) > 0.01:
+                    x_old = x_new
+                    x_new = x_new - step_size * gradient(f)(x_new)
+                print(x_new)
+            </code></pre>
+        <div class="p">
+            Anyways, we'll assume you (or your computer) know how to minimize functions from here on out.
+        </div>
+    </li>
+</ol>
+<script src="../js/live_render_katex.js"></script>
+

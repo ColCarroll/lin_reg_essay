@@ -1,0 +1,21 @@
+
+<h2>> The Geometry of Regularization</h2>
+<div class="p">
+    As a pleasant conclusion, there is also some beautiful geometry to regularization.  Namely, each of Ridge regression
+    and Lasso regression seeks to minimize a weighted average between two different norms.  This weighted average is the
+    <span class="math">l^2</span> distance between <span class="math">y(\vec{x}_j, \vec{w})</span> and
+    <span class="math">y_j</span> plus the <span class="math">l^1</span>- or <span class="math">l^2</span>-size of
+    <span class="math">\vec{w}</span>. It turns out the the unit ball defined by the <span class="math">l^p</span>-norm
+    is a circle with <span class="math">p = 2</span>, a diamond when <span class="math">p=1</span>, and gets close to a
+    square as <span class="math">p \to \infty</span>.  Intuitively, the unit ball gets "spikier" as
+    <span class="math">p</span> gets smaller.  Then it is more likely that the (round) ball around
+    <span class="math">y(\vec{x}_j, \vec{w})</span> will meet the (diamond) ball around the origin on one of the axes,
+    which leads to a more "sparse" solution for <span class="math">\vec{w}</span>.
+</div>
+<div ng-controller="EllPController" class="figure">
+    <plot-line line-data="data"></plot-line>
+    A plot of the set <span katex-bind="funcName"></span>.  Note that as <span class="math">p \to 0</span>, the unit
+    <span class="math">l^p</span> ball gets "spikier".
+</div>
+
+<script src="../js/live_render_katex.js"></script>

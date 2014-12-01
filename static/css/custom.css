@@ -56,17 +56,20 @@ h2 a[id] {
     width: 740px;
 }
 
+span.toc,
 header,
 footer {
     font-size: small;
 }
 
+span.toc,
 header aside,
 footer aside {
     float: left;
     margin-right: .5em;
 }
 
+span.toc:after,
 header aside:after,
 footer aside:after {
     padding-left: .5em;

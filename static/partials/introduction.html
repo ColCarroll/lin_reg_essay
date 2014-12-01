@@ -1,0 +1,211 @@
+<h2>> Introduction</h2>
+<div class="p">
+    There are two common tasks in machine learning: <em>regression</em> tasks and <em>classification</em>
+    tasks. Examples of classification tasks include predicting the species of an iris based on
+    <a href="http://en.wikipedia.org/wiki/Iris_flower_data_set">petal and sepal measurements</a>, or predicting who will
+    win a <a href="http://fivethirtyeight.com/interactives/senate-forecast/">Senate race</a> or
+    <a href="http://www.lasvegas.com"> football game</a>.
+    Broadly each takes some set of inputs and then outputs one of a discrete set of labels (species of iris, Senatorial candidate, or football team).  Typically, the output will
+    actually be a probability of some data point having some label.  A regression task will predict a <em>real
+    valued</em> output.  Perhaps this would be used to estimate stock prices, forecast inventory, or predict the score of a
+    a football game.
+</div>
+
+<div class="p">
+    Linear regression can get a bad rap for sounding boring.  Much like in linear algebra, where solving <span class="math">A \vec{x} = \vec{b}</span> turns out to be surprisingly useful, studying linear regression - how to build a model, how to
+    tune a model, and what sorts of performance to expect - can yield impressive results in practice.  In particular,
+    one finds that many methods with sexier names are built on top of linear regression.
+    <a href="http://en.wikipedia.org/wiki/Logistic_regression">Logistic regression</a>, a popular choice in
+    classification tasks, is built on top of linear regression, and
+    <a href="http://en.wikipedia.org/wiki/Artificial_neural_network">neural nets</a>, which seem to be trendy these
+    days, use linear regression as their building blocks.
+</div>
+
+<h3>> Notation</h3>
+<div class="p">
+    The symbols on this page are displayed using <a href="http://khan.github.io/KaTeX/">KaTeX</a>, rather than
+    <a href="http://www.mathjax.org/">MathJax</a>, both as an experiment in KaTeX and to improve performance.  Since KaTeX is
+    still in development, a few shortcuts had to be taken.  Below is a list of things I did in MathJax that, as far
+    as I know, still cannot be done in KaTeX (though, to emphasize, I think KaTeX is a terrific project, and chose to
+    use it for the performance increase).
+    <ul>
+        <li>
+            <code>\mathcal</code>, <a href="http://en.wikipedia.org/wiki/Blackboard_bold"><code>\mathbb</code></a>
+            do not exist, so sets aren't fancy, and the real numbers are just a capital R. (Note in the linked
+            wikipedia entry that Knuth suggested using an actual bold in place of blackboard bold in print, but
+            <code>\mathbf</code> is also not implemented.)
+        </li>
+        <li>
+            Matrices (and environments in general) do not exist, though their absence
+            <a href="https://github.com/Khan/KaTeX/issues/43">is noted</a>.
+        </li>
+        <li>
+            <code>\propto</code> isn't implemented yet, so I keep the constants around, which adds a bit to the
+            notational burden on the reader.
+        </li>
+        <li>
+            <code>\ell</code> doesn't exist, so
+            <a href="http://en.wikipedia.org/wiki/Lp_space#The_p-norm_in_finite_dimensions">little lp spaces</a> do not
+            look as sweet.
+        </li>
+        <li>
+            <code>\nabla</code> is missing, so for the gradient, I use a capital D.  In a wildly unscientific
+            survey of mathematicians, I got a "I would say so, yeah" and a "geez, maybe" when asked whether D and
+            <code>\nabla</code> were the same thing, so I'm going for it.
+        </li>
+    </ul>
+</div>
+
+<h2>> Setup</h2>
+<div class="p">
+    At its most basic, a linear model is one of the form
+    <div class="math">
+        y(\vec{x}, \vec{w}) = w_0 + x_1 w_1 + \cdots + w_Nx_N,
+    </div>
+    where <span class="math">\vec{x} = (x_1, \ldots, x_N) \in R^N</span> are called <em>features</em>, and
+    <span class="math">\vec{w} = (w_0, \ldots, w_N) \in R^{N+1}</span> are called <em>weights</em>.  One is typically
+    given some training data
+    <div class="math">
+        D = \{(y_1, \vec{x}_1),\ldots,(y_d, \vec{x}_d)\},
+    </div>
+    and asked to find a model which minimizes
+    <div class="math">
+        loss(\vec{w}) = \sum_{j=1}^d (y_j - y(\vec{x}_j, \vec{w}))^2.
+    </div>
+    Below, you may click on the plot to generate a random data set, and then manually choose values
+    <span class="math">w_0</span>, <span class="math">w_1</span> to
+    try to fit <span class="math">y(x, \vec{w}) = w_0 + w_1 x</span> to the data.
+</div>
+
+<div ng-controller="ManualRegression" class="figure">
+    <div ng-click="cycleData()">
+        <plot-line-points point-data="data" line-data="plotData"></plot-line-points>
+    </div>
+    <div class="p">
+        <span class="math">
+            \vec{w} = (w_0, w_1) =
+        </span>(
+        <input type="number" step=0.1 ng-model="w0" ng-change="updatePlot()">,
+        <input type="number" step=0.1 ng-model="w1" ng-change="updatePlot()">
+        )
+        <br>
+        Current model: <span katex-bind="tex"></span>
+    </div>
+    <div class="p">Current loss: {{error.toFixed(2)}}</div>
+    <div class="p"><em>Click the plot to generate a new data set</em></div>
+
+</div>
+
+<h2>> Advanced Setup</h2>
+
+<div class="p">
+    That was likely highly frustrating, since many (most?) of these data sets (like real data sets) come from functions that rely non-linearly on
+    their inputs.  One might consider rainfall in a location as a function of the day of year, which would probably have
+    some sort of periodic relationship, or weight of a person given their height, which we might expect has a polynomial
+    relationship (since weight is roughly proportional to volume, and height is a measure of length).
+</div>
+
+<div class="p">
+    We deal with this by fitting our
+    model using <em>basis functions</em>, <span class="math">\vec{\phi} = (\phi_1, \ldots, \phi_n)</span>, where
+    <span class="math">\phi_j: R^N \to R</span>.  Then we have model
+
+    <div class="math">
+        y(\vec{x}, \vec{w}) = w_0 + \sum_{j=1}^n w_j \vec{\phi}_j(\vec{x})
+    </div>
+    which relies non-linearly on <span class="math">\vec{x}</span>.  We can write this more compactly by setting
+    <span class="math">\phi_0(\vec{x}) := 1</span>, so
+    <div class="math">
+        y = \vec{\phi}(\vec{x}) \cdot \vec{w}.
+    </div>
+</div>
+
+<div class="p">
+    In practice, some popular choices for basis functions include:
+
+    <ul ng-controller="basisCtrl">
+        <li><em><a href="http://en.wikipedia.org/wiki/Polynomial">Polynomials</a>.</em>
+            For a one dimensional feature set, this means including basis functions
+            <div class="math">
+                \phi_j(x) = x^j,
+            </div>
+            so that instead of modeling  <span class="math">y = w_0 + w_1 x</span>, we can now write
+            <div class="math">
+                y(\vec{w}, x) = \sum_{j=0}^n w_j  \phi_j(x) = w_0 + w_1 x + w_2 x^2 + \cdots + w_n x^n,
+            </div>
+            for some value of <span class="math">n</span>.  As an example when <span class="math">\vec{x}</span> is of higher dimension,
+            <span class="math">\vec{x} = (x_1, \ldots, x_N)</span>, you may get the second degree polynomials by defining
+            <span class="math">\phi_{j, 0}(\vec{x}) = x_j</span>, and <span class="math">\phi_{j,k}(x) = x_j x_k</span>.
+            Now you will have <span class="math">\binom{N}{2}</span> basis functions (pronounced "N choose 2", and, in
+            fact, equal to <span class="math">\frac{N(N-1)}{2}</span>), and
+            <div class="math">
+                y(\vec{w}, \vec{x}) = \sum_{j, k = 0; j \leq k}^N w_{j,k}\phi_{j,k}(\vec{x}).
+            </div>
+
+            A shortcoming of polynomials is that they tend to get very large very fast away from points you have
+            trained on, since <span class="math">\lim_{x\to\pm \infty}|x^j| = \infty</span> for any positive value of
+            <span class="math">j</span>. This can lead to ridiculous predictions.
+
+            <div class="figure">
+                <plot-line line-data="polyData"></plot-line>
+                <div>
+                    <span katex-bind="polyTex"></span>
+                </div>
+                <div>
+                    Edit degree:
+                    <input type="number" step="1" ng-model="polyDegree" ng-change="updatePoly()">
+                </div>
+            </div>
+        </li>
+
+        <li> <em><a href="http://en.wikipedia.org/wiki/Sigmoid_function">Sigmoids</a>.</em>
+            These may be defined casually as having
+            an "S" shape, and carefully as being monotone (either always increasing or decreasing), and converging to a
+            finite value in either direction.  Concretely, one such family is
+            <div class="math">
+                \sigma_{m,b}(x) = \frac{1}{1 + e^{-m(x + b)}},
+            </div>
+            where <span class="math">m</span> controls the "spread" of the sigmoid, and <span class="math">b</span> the
+            "location".  Another popular choice for<span class="math">\sigma_{m,b}</span> is <span class="math">\tanh(m(x+b))</span>.  One might think of a sigmoid as modeling some change that happens around the point <span class="math">b</span> with some amount of abruptness controlled by <span class="math">m</span>.  You might generate many of
+            these sigmoids by selecting some grid of locations and spreads in your feature space.
+            <div class="figure">
+                <plot-line line-data="sigmoidData"></plot-line>
+                <div>
+                    <span katex-bind="sigmoidTex"></span>
+                </div>
+                <div>
+                    Edit location:
+                    <input type="number" step="0.1" ng-model="sigmoidLoc" ng-change="updateSigmoid()">
+                </div>
+                <div>
+                    Edit spread:
+                    <input type="number" step="1" ng-model="sigmoidSpread" ng-change="updateSigmoid()">
+                </div>
+            </div>
+        </li>
+
+        <li> <em><a href="http://en.wikipedia.org/wiki/Gaussian_function">Gaussians</a>.</em>
+            We'll later deal with these in a statistical fashion, but right now they're just a friendly shape.  Similarly
+            to sigmoids, these functions have a local effect on a model.  They are defined as a two parameter family,
+            with the parameters controlling spread and location.  We write
+            <div class="math">
+                \phi_{m,b}(x) = e^{\frac{(x - b)^2}{2m^2}}.
+            </div>
+            <div class="figure">
+                <plot-line line-data="gaussData"></plot-line>
+                <div>
+                    <span katex-bind="gaussTex"></span>
+                </div>
+                <div>
+                    Edit location:
+                    <input type="number" step="0.1" ng-model="gaussLoc" ng-change="updateGauss()">
+                </div>
+                <div>
+                    Edit spread:
+                    <input type="number" min="0" step="0.1" ng-model="gaussSpread" ng-change="updateGauss()">
+                </div>
+            </div>
+        </li>
+    </ul>
+</div>
+<script src="../js/live_render_katex.js"></script>

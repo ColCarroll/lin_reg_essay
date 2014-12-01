@@ -16,7 +16,16 @@ var generatingFunctions = {
     "\\sin{\\frac{1}{x}}": function(x) { return Math.sin(1.0 / x)}
 };
 
-var essay = angular.module("regressionEssay", []);
+var essay = angular.module("regressionEssay", ['ngRoute']);
+
+essay.config(['$routeProvider', function($routeProvider){
+    $routeProvider.when('/', {templateUrl: 'partials/introduction.html'});
+    $routeProvider.when('/model_fitting', {templateUrl: 'partials/model_fitting.html'});
+    $routeProvider.when('/model_building', {templateUrl: 'partials/model_building.html'});
+    $routeProvider.when('/bayesian_model_building', {templateUrl: 'partials/bayesian_model_building.html'});
+    $routeProvider.when('/geometry', {templateUrl: 'partials/geometry.html'});
+    $routeProvider.otherwise({redirectTo: '/'});
+}]);
 
 essay.controller('ManualRegression',
     function ManualRegression($scope){
@@ -386,18 +395,20 @@ essay.controller('EllPController',
         };
 
         $scope.update = function(){
-            if(Math.round(10 * $scope.p) == 5.0){
+            if(Math.round(10 * $scope.p) == 2.0){
                 $scope.p = 3.0;
-            } else {$scope.p = +($scope.p - 0.5).toFixed(1);}
+            } else {$scope.p = +($scope.p - 0.2).toFixed(1);}
             $scope.setFuncName();
             $scope.getCoords();
         };
 
+        $scope.update();
         setInterval(function() {
                 $scope.update();
                 $scope.$digest();
-            }, 5000
+            }, 500
         );
+
     }
 
 );

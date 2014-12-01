@@ -1,0 +1,160 @@
+<h2>> Model Building</h2>
+<div class="p">
+    Armed with our newfound knowledge, a great way of working seems to be to take our data set, create a ton of
+    basis functions, and fit a model with very low error.  Unfortunately, we then move from our training data to some
+    real data, we may find that our model performs spectacularly poorly. This phenomena is called
+    <em><a href="http://en.wikipedia.org/wiki/Overfitting">overfitting</a></em>.
+</div>
+
+<div class="p">
+    We provide a sandbox below to fit a linear model to some sample data, this time with nonlinear basis functions.  You may choose how many basis functions to
+    use, and there is a solver running in the background which will find the best fit.  We additionally use 100 points
+    sampled from the same function as the training data to compute your mean error.  You can see graphically below when
+    the model looks overfit, but in the real world, <span class="math">x</span> will be a vector of dimension greater
+    than two, and visualizing your fit in this manner will be difficult.  We'll discuss better ways to detect
+    overfitting later. Click on the plot to generate a new training set.
+</div>
+
+<div ng-controller="NaiveModelCtrl" class="figure">
+    <plot-line-points line-data="plotModel" point-data="trainModel" ng-click="randomFunc()"></plot-line-points>
+    <span katex-bind="tex"></span>
+    <div>
+        <div style="display: inline-block">
+            <h3>Basis Functions</h3>
+            <div ng-repeat="(key, value) in basisCounts">
+                <span> <label>{{key}} bases: </label> <input type="number" min="0" step="1" ng-model=value ng-change="updateBasis(key, value)"></span>
+            </div>
+        </div>
+        <div style="display: inline-block">
+            <h3>Error</h3>
+            <div>
+                Training: {{errors.train.toFixed(4)}}
+            </div>
+            <div>
+                Testing: {{errors.test.toFixed(4)}}
+            </div>
+        </div>
+    </div>
+    <p><em>Click chart to change data set</em></p>
+</div>
+
+<div class="p">
+    A less naive approach (and one you likely found on your own) would be recognizing that we'll be judged on our
+    performance on this test or real data, and plan for this.  So let's first split our data into a "training" and
+    "testing" set, then create a ton of basis functions.  Now instead of creating one function with very low training
+    error, we will choose successive subsets of our basis functions, and choose the model that has the lowest testing
+    error.  We say that this model (that is, the model with lowest testing error) <em>generalizes</em> well.  This is a
+    good approach, but if we have, say, 1000 basis functions, testing all
+    <span class="math">2^{1000} \approx 10^{300}</span> possible subsets of these is prohibitive (in general, any number
+    over <span class="math">10^8</span> should make you at least hesitate).
+</div>
+
+<div class="p">
+    Our least naive (and often used in practice) approach involves what is called <em>regularization</em>, and is the
+    whole point of this essay.  We design a smarter loss function which penalizes a model for being too complicated,
+    and (mostly) automatically(-ish) picks a good model for us.  In particular, we will minimize either
+    <div class="math">
+        loss(\vec{w}) = \sum_{j=1}^d (y_j - \vec{w} \cdot \vec{\phi}(\vec{x}_j))^2 + \alpha \|\vec{w}\|_2^2
+    </div>
+    or
+    <div class="math">
+        loss(\vec{w}) = \sum_{j=1}^d (y_j - \vec{w} \cdot \vec{\phi}(\vec{x}_j))^2 + \alpha \|\vec{w}\|_1,
+    </div>
+
+    where
+    <div class=math>
+        \|\vec{w}\|_p := \left(\sum w_j^p \right)^{\frac{1}{p}}
+    </div>
+    is called the <span class="math">l_p</span>-norm of a vector <span class="math">\vec{w}</span>, and
+    <span class="math">\alpha</span> is called the <em>regularization strength</em>.  Using the first loss
+    function to train a model is called <em>Ridge regression</em>, and the second is called <em>Lasso</em> regression.
+    Note that the <span class="math">l_1</span>-norm is just the sum of the absolute values, and the
+    <span class="math">l_2</span>-norm squared is the sum of squares.
+</div>
+
+<div class="p">
+    Below, we give you the same sandbox as earlier, but you may now also choose the type of regularization to apply,
+    and the regularization strength.
+</div>
+
+<div ng-controller="RegularModelCtrl" class="figure">
+    <plot-line-points line-data="plotModel" point-data="trainModel" ng-click="randomFunc()"></plot-line-points>
+    <span katex-bind="tex"></span>
+    <div>
+        <div style="display: inline-block">
+            <h3>Basis Functions</h3>
+            <div ng-repeat="(key, value) in basisCounts">
+                <span> <label>{{key}} bases: </label> <input type="number" min="0" step="1" ng-model=value ng-change="updateBasis(key, value)"></span>
+            </div>
+        </div>
+        <div style="display: inline-block">
+            <h3>Model Type</h3>
+            <select ng-model="modelType" ng-options="model.name for model in modelTypes"></select>
+        </div>
+        <div style="display: inline-block">
+            <h3>Regularization Strength</h3>
+            <span>
+                <label>Regularization Strength: </label>
+                <input type="number" min="0" step="0.01" ng-model=regStrength ng-change="updateC(regStrength)">
+            </span>
+        </div>
+        <div style="display: inline-block">
+            <h3>Error</h3>
+            <div>
+                Training: {{errors.train.toFixed(4)}}
+            </div>
+            <div>
+                Testing: {{errors.test.toFixed(4)}}
+            </div>
+        </div>
+    </div>
+    <p><em>Click chart to change data set</em></p>
+</div>
+
+
+<div class="p">
+    To get our best model, we still have to choose a value for <span class="math">\alpha</span>, and which type of
+    regularization we want (Ridge or Lasso or none), and in order to do this, we will typically write a loop like this:
+</div>
+<pre><code>
+    best_alpha = 0
+    best_penalty = None
+    min_error = float('Inf')
+    for penalty in (None, 'l1', 'l2'):
+        for alpha in (0.001, 0.03, 0.1, 0.3, 1):
+            model = linear_regression.fit(training_data, penalty, constant)
+            error =  sum(model.fit(testing_data.features) - testing_data.labels) ** 2)
+            if error < min_error:
+                best_alpha = alpha
+                best_penalty = penalty
+    print(best_penalty, best_alpha)
+</code></pre>
+<div class="p">
+    Choosing the set of parameters with the least testing errors gives us our desired model.  We let you choose the
+    set of basis vectors we consider when fitting a model, and provide a final sandbox that runs (essentially) the
+    code above to fit itself.  Click on the diagram to generate a new training set and a new best set of parameters.
+</div>
+
+<div ng-controller="BestModelCtrl" class="figure" ng-click="updateModel()">
+    <plot-line-points line-data="plotModel" point-data="trainModel" ng-click="randomFunc()"></plot-line-points>
+    <span katex-bind="tex"></span>
+    <div class="p">
+        Fit with {{modelType.name.toLowerCase()}}, and regularization constant of {{regStrength.toFixed(5)}}.  Training
+        error is {{errors.train.toFixed(4)}}, and testing error is {{errors.test.toFixed(4)}}.
+    </div>
+    <p><em>Click chart to change data set and retrain model</em></p>
+</div>
+
+
+<div class="p">
+    As a point of fact, we will typically actually divide our data into training, cross validation, and testing sets.
+    The model will be trained (with a regularization penalty) on the training set, then we choose the model which
+    has the least loss (without a regularization penalty) on the cross validation set.  The testing set will tell
+    us what sort of performance to expect in the future.  This is necessary since we may test enough parameters to
+    "overfit" on the cross validation set.  In general, we'd expect
+    <div class="math">
+        \text{training error} < \text{cross validation error} < \text{testing error}.
+    </div>
+</div>
+
+<script src="../js/live_render_katex.js"></script>
