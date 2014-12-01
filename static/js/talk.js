@@ -434,8 +434,8 @@ essay.directive("plotLinePoints", function() {
             },
             link: function (scope, element, attrs) {
                 var svg = d3.select(element[0]).append("svg")
-                    .style("width", width + margin.left + margin.right)
-                    .style("height", height + margin.top + margin.bottom);
+                    .style("width", width + margin.left + margin.right + "px")
+                    .style("height", height + margin.top + margin.bottom + "px");
 
                 var xValue = function (d) {return d.x;},
                     xScale = d3.scale.linear().range([0, width]),
@@ -549,8 +549,8 @@ essay.directive("plotLine", function() {
             },
             link: function (scope, element) {
                 var svg = d3.select(element[0]).append("svg")
-                    .style("width", width + margin.left + margin.right)
-                    .style("height", height + margin.top + margin.bottom);
+                    .style("width", width + margin.left + margin.right + "px")
+                    .style("height", height + margin.top + margin.bottom + "px");
 
                 var xValue = function (d) {return d.x;},
                     xScale = d3.scale.linear().range([0, width]),
@@ -641,8 +641,8 @@ essay.directive("plotNoisePoints", function() {
             },
             link: function (scope, element, attrs) {
                 var svg = d3.select(element[0]).append("svg")
-                    .style("width", width + margin.left + margin.right)
-                    .style("height", height + margin.top + margin.bottom);
+                    .style("width", width + margin.left + margin.right + "px")
+                    .style("height", height + margin.top + margin.bottom + "px");
 
                 var xValue = function (d) {return d.x;},
                     xScale = d3.scale.linear().range([0, width]),
